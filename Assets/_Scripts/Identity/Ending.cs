@@ -11,7 +11,7 @@ namespace RunLight.Identity
         /// <summary>破曉 — 中～高認同值。被看見不再那麼可怕。</summary>
         Daybreak,
 
-        /// <summary>溯光 — 高認同值 + 全收集。說出口的那一刻,選擇了自己。</summary>
+        /// <summary>腦迴路（最終結局）— 高認同值 + 全收集。說出口的那一刻,選擇了自己。</summary>
         Verso
     }
 }

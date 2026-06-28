@@ -412,7 +412,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 669ffa565dc162a40a2d3d6e860c68e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.MainMenu
-  gameSceneName: SampleScene
+  gameSceneName: Prologue
   newGameSlot: 0
   gameTitle: "\u8166\u8FF4\u8DEF"
   subtitle: BrainCircuit

@@ -22,14 +22,14 @@ namespace RunLight.UI
     {
         [Header("流程")]
         [Tooltip("按「開始遊戲」要載入的場景名稱(需加入 Build Settings)")]
-        [SerializeField] private string gameSceneName = "SampleScene";
+        [SerializeField] private string gameSceneName = "Prologue";
 
         [Tooltip("「開始遊戲」使用的存檔槽")]
         [SerializeField] private int newGameSlot = 0;
 
         [Header("文字")]
-        [SerializeField] private string gameTitle = "溯光";
-        [SerializeField] private string subtitle = "VERSO — Find the Light Within";
+        [SerializeField] private string gameTitle = "腦迴路";
+        [SerializeField] private string subtitle = "BrainCircuit — 在記憶的迴路中找回自己";
 
         // ---- 執行時建立的物件參考 ----
         private Button _continueButton;
@@ -118,7 +118,7 @@ namespace RunLight.UI
             CreateMenuButton(column.transform, "離開遊戲", OnQuit);
 
             // ---- 版本字 ----
-            var ver = CreateText("Version", canvasGo.transform, $"RunLight · v{Application.version}", 24,
+            var ver = CreateText("Version", canvasGo.transform, $"腦迴路 · v{Application.version}", 24,
                 new Color(TextColor.r, TextColor.g, TextColor.b, 0.5f), FontStyle.Normal);
             var verRt = ver.rectTransform;
             verRt.anchorMin = new Vector2(1, 0);

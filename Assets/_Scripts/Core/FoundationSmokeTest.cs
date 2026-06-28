@@ -26,7 +26,7 @@ namespace RunLight.Core
         public void RunAll()
         {
             var gm = GameManager.Instance;
-            Debug.Log("===== RunLight 地基系統測試開始 =====");
+            Debug.Log("===== 腦迴路 地基系統測試開始 =====");
 
             // 1. 旗標系統
             gm.NewGame(testSlot);
