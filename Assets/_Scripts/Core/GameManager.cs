@@ -38,6 +38,7 @@ namespace RunLight.Core
             Flags = new FlagSystem();
             Identity = new IdentityMeter();
             _sessionStartTime = Time.unscaledTime;
+            AudioListener.volume = PlayerPrefs.GetFloat("rl_master_volume", 1f);
         }
 
         /// <summary>本次存檔應記錄的累計遊玩秒數。</summary>

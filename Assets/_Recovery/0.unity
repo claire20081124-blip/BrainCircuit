@@ -414,15 +414,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.MainMenu
   gameSceneName: Prologue
   newGameSlot: 0
-  backgroundSprite: {fileID: 21300000, guid: 6e3136c737e426a4c948e8475b85d965, type: 3}
-  overlayAlpha: 0.43
   gameTitle: "\u8166\u8FF4\u8DEF"
-  titleFontSize: 150
   subtitle: BrainCircuit
-  subtitleFontSize: 50
-  titlePosition: {x: 0, y: -230}
-  subtitlePosition: {x: 0, y: -400}
-  buttonPosition: {x: 0, y: -170}
 --- !u!4 &1458772456
 Transform:
   m_ObjectHideFlags: 0

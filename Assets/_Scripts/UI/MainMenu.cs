@@ -13,11 +13,9 @@ namespace RunLight.UI
     /// 遊戲主選單(開始 / 繼續 / 遊戲選項 / 系統設定 / 離開)。
     ///
     /// 使用方式:在主選單場景建立一個空 GameObject,掛上本元件即可。
-    /// 整個畫面(Canvas、EventSystem、標題、按鈕、設定面板)都在執行時用程式碼產生,
-    /// 不需要手動在 Inspector 拉 UI;進 Play 模式就會出現。
-    ///
-    /// 之後若要換成美術做好的 TMP / 圖片版面,可把本檔當邏輯參考、改接設計師拉好的物件。
+    /// Inspector 的任何欄位改動後會立即在 Scene 視窗預覽，不需要按 Play。
     /// </summary>
+    [ExecuteAlways]
     public class MainMenu : MonoBehaviour
     {
         [Header("流程")]
@@ -27,9 +25,28 @@ namespace RunLight.UI
         [Tooltip("「開始遊戲」使用的存檔槽")]
         [SerializeField] private int newGameSlot = 0;
 
+        [Header("外觀")]
+        [Tooltip("主選單背景圖（Sprite）；留空則使用純色背景")]
+        [SerializeField] private Sprite backgroundSprite;
+
+        [Tooltip("背景圖上方的暗化遮罩透明度（0 = 不遮，1 = 全黑）；有背景圖時建議 0.3～0.5")]
+        [SerializeField] [Range(0f, 1f)] private float overlayAlpha = 0.4f;
+
         [Header("文字")]
         [SerializeField] private string gameTitle = "腦迴路";
+        [SerializeField] private int titleFontSize = 120;
         [SerializeField] private string subtitle = "BrainCircuit — 在記憶的迴路中找回自己";
+        [SerializeField] private int subtitleFontSize = 36;
+
+        [Header("位置")]
+        [Tooltip("標題位置（X 左右；Y 負值往下，從畫面頂部算起）")]
+        [SerializeField] private Vector2 titlePosition = new Vector2(0, -260);
+
+        [Tooltip("副標題位置")]
+        [SerializeField] private Vector2 subtitlePosition = new Vector2(0, -300);
+
+        [Tooltip("按鈕欄位置（從畫面中心算起）")]
+        [SerializeField] private Vector2 buttonPosition = new Vector2(0, -120);
 
         // ---- 執行時建立的物件參考 ----
         private Button _continueButton;
@@ -46,11 +63,49 @@ namespace RunLight.UI
         private void Awake()
         {
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            EnsureEventSystem();
-            BuildUI();
+            if (Application.isPlaying) EnsureEventSystem();
+            Rebuild();
         }
 
-        private void Start() => RefreshContinueState();
+        private void Start()
+        {
+            if (Application.isPlaying) RefreshContinueState();
+        }
+
+        private void OnValidate()
+        {
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+                UnityEditor.EditorApplication.delayCall += Rebuild;
+#endif
+        }
+
+        private void Rebuild()
+        {
+            if (this == null) return;
+            _font ??= Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+            var existing = transform.Find("MainMenuCanvas");
+            if (existing != null)
+            {
+#if UNITY_EDITOR
+                if (!Application.isPlaying) DestroyImmediate(existing.gameObject);
+                else
+#endif
+                Destroy(existing.gameObject);
+            }
+
+            BuildUI();
+
+#if UNITY_EDITOR
+            // 編輯模式下不把預覽物件存進場景檔
+            if (!Application.isPlaying)
+            {
+                var canvas = transform.Find("MainMenuCanvas");
+                if (canvas != null) canvas.gameObject.hideFlags = HideFlags.DontSave;
+            }
+#endif
+        }
 
         // ============================================================
         //  介面建構
@@ -71,28 +126,45 @@ namespace RunLight.UI
             // ---- 背景 ----
             var bg = CreateImage("Background", canvasGo.transform, BgBottom);
             Stretch(bg.rectTransform);
-            // 上方再疊一層較亮的漸層感(用兩塊半透明色塊近似)
-            var glow = CreateImage("Glow", canvasGo.transform, new Color(BgTop.r, BgTop.g, BgTop.b, 0.85f));
-            var glowRt = glow.rectTransform;
-            glowRt.anchorMin = new Vector2(0, 0.4f);
-            glowRt.anchorMax = new Vector2(1, 1);
-            glowRt.offsetMin = glowRt.offsetMax = Vector2.zero;
+            if (backgroundSprite != null)
+            {
+                // 使用自訂背景圖
+                bg.sprite = backgroundSprite;
+                bg.color = Color.white;
+                bg.type = Image.Type.Simple;
+                bg.preserveAspect = false; // 拉滿全螢幕
+
+                // 暗化遮罩，讓按鈕文字保持可讀
+                var overlay = CreateImage("DarkOverlay", canvasGo.transform,
+                    new Color(0f, 0f, 0f, overlayAlpha));
+                Stretch(overlay.rectTransform);
+            }
+            else
+            {
+                // 純色漸層背景（預設）
+                var glow = CreateImage("Glow", canvasGo.transform,
+                    new Color(BgTop.r, BgTop.g, BgTop.b, 0.85f));
+                var glowRt = glow.rectTransform;
+                glowRt.anchorMin = new Vector2(0, 0.4f);
+                glowRt.anchorMax = new Vector2(1, 1);
+                glowRt.offsetMin = glowRt.offsetMax = Vector2.zero;
+            }
 
             // ---- 標題 ----
-            var title = CreateText("Title", canvasGo.transform, gameTitle, 120, Accent, FontStyle.Bold);
+            var title = CreateText("Title", canvasGo.transform, gameTitle, titleFontSize, Accent, FontStyle.Bold);
             var titleRt = title.rectTransform;
             titleRt.anchorMin = new Vector2(0.5f, 1f);
             titleRt.anchorMax = new Vector2(0.5f, 1f);
             titleRt.pivot = new Vector2(0.5f, 1f);
-            titleRt.anchoredPosition = new Vector2(0, -160);
+            titleRt.anchoredPosition = titlePosition;
             titleRt.sizeDelta = new Vector2(1200, 180);
 
-            var sub = CreateText("Subtitle", canvasGo.transform, subtitle, 36, TextColor, FontStyle.Italic);
+            var sub = CreateText("Subtitle", canvasGo.transform, subtitle, subtitleFontSize, TextColor, FontStyle.Italic);
             var subRt = sub.rectTransform;
             subRt.anchorMin = new Vector2(0.5f, 1f);
             subRt.anchorMax = new Vector2(0.5f, 1f);
             subRt.pivot = new Vector2(0.5f, 1f);
-            subRt.anchoredPosition = new Vector2(0, -300);
+            subRt.anchoredPosition = subtitlePosition;
             subRt.sizeDelta = new Vector2(1200, 60);
 
             // ---- 按鈕欄 ----
@@ -102,7 +174,7 @@ namespace RunLight.UI
             colRt.anchorMin = new Vector2(0.5f, 0.5f);
             colRt.anchorMax = new Vector2(0.5f, 0.5f);
             colRt.pivot = new Vector2(0.5f, 0.5f);
-            colRt.anchoredPosition = new Vector2(0, -120);
+            colRt.anchoredPosition = buttonPosition;
             colRt.sizeDelta = new Vector2(440, 520);
             var vlg = column.GetComponent<VerticalLayoutGroup>();
             vlg.spacing = 22;
@@ -166,12 +238,14 @@ namespace RunLight.UI
         // ============================================================
         private void OnStart()
         {
+            if (!Application.isPlaying) return;
             GameManager.Instance.NewGame(newGameSlot);
             LoadScene(gameSceneName);
         }
 
         private void OnContinue()
         {
+            if (!Application.isPlaying) return;
             int slot = FindLatestSaveSlot();
             if (slot < 0)
             {
@@ -185,7 +259,6 @@ namespace RunLight.UI
                 return;
             }
 
-            // 優先回到存檔當下的場景,讀不到就退回預設遊戲場景。
             var data = SaveSystem.PeekSummary(slot);
             string scene = data != null && !string.IsNullOrEmpty(data.currentScene)
                 ? data.currentScene
@@ -304,12 +377,12 @@ namespace RunLight.UI
             var btn = go.GetComponent<Button>();
             btn.targetGraphic = img;
             var colors = btn.colors;
-            colors.normalColor = new Color(1f, 1f, 1f, 0.06f);
-            colors.highlightedColor = new Color(Accent.r, Accent.g, Accent.b, 0.22f);
-            colors.pressedColor = new Color(Accent.r, Accent.g, Accent.b, 0.35f);
-            colors.selectedColor = colors.highlightedColor;
-            colors.disabledColor = new Color(1f, 1f, 1f, 0.02f);
-            colors.fadeDuration = 0.12f;
+            colors.normalColor      = new Color(1f, 1f, 1f, 0.08f);
+            colors.highlightedColor = new Color(Accent.r, Accent.g, Accent.b, 0.80f);
+            colors.pressedColor     = new Color(Accent.r, Accent.g, Accent.b, 1.00f);
+            colors.selectedColor    = colors.highlightedColor;
+            colors.disabledColor    = new Color(1f, 1f, 1f, 0.02f);
+            colors.fadeDuration     = 0.10f;
             btn.colors = colors;
             btn.onClick.AddListener(() => onClick());
 
