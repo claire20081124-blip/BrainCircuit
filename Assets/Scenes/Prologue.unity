@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f808645aae807c4bad2b4d21be724b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.Prologue
-  nextSceneName: SampleScene
+  nextSceneName: "\u5834\u666F"
   openingVideo: {fileID: 32900000, guid: 006bf623ae1e20a4e8b67ed1adffef06, type: 3}
   videoFadeIn: 0.5
   videoFadeOut: 0.8
