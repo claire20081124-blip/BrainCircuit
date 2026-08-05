@@ -35,8 +35,12 @@ namespace RunLight.UI
         [Header("開場影片（選填）")]
         [Tooltip("拖入 MP4；留空則略過影片直接進對話")]
         [SerializeField] private VideoClip openingVideo;
-        [SerializeField] private float videoFadeIn  = 0.5f;
-        [SerializeField] private float videoFadeOut = 0.8f;
+        [SerializeField] private float videoFadeIn    = 0.5f;
+        [SerializeField] private float videoFadeOut   = 0.8f;
+        [Tooltip("影片播放速度，1 = 正常，0.5 = 半速")]
+        [SerializeField] private float playbackSpeed   = 1f;
+        [Tooltip("影片總秒數（填影片實際長度，0 = 自動偵測）")]
+        [SerializeField] private float videoDuration   = 0f;
 
         [Header("對話（影片結束後）")]
         [SerializeField] private DialogueLine[] dialogueLines;
@@ -84,7 +88,7 @@ namespace RunLight.UI
             _advanceAction.AddBinding("<Keyboard>/space");
             _advanceAction.AddBinding("<Keyboard>/enter");
             _advanceAction.AddBinding("<Keyboard>/numpadEnter");
-            _advanceAction.performed += _ => AdvanceInput();
+            _advanceAction.performed += _ => { if (Time.timeSinceLevelLoad > 0.5f) AdvanceInput(); };
             _advanceAction.Enable();
 
             _escapeAction = new InputAction(type: InputActionType.Button);
@@ -125,7 +129,7 @@ namespace RunLight.UI
         // ── 影片播放 ──────────────────────────────────────────────────────────
         private IEnumerator PlayVideo()
         {
-            var rt = new RenderTexture(1920, 1080, 0);
+            var rt = new RenderTexture((int)openingVideo.width, (int)openingVideo.height, 0);
             _videoDisplay.texture = rt;
             _videoDisplay.gameObject.SetActive(true);
 
@@ -139,12 +143,21 @@ namespace RunLight.UI
 
             yield return new WaitUntil(() => vp.isPrepared);
 
+            vp.playbackSpeed = playbackSpeed;
             vp.Play();
             _phase     = Phase.Video;
             _skipVideo = false;
             yield return FadeOverlay(1f, 0f, videoFadeIn);
 
-            yield return new WaitUntil(() => !vp.isPlaying || _skipVideo);
+            float duration = videoDuration > 0 ? videoDuration / playbackSpeed
+                           : (vp.length > 1   ? (float)(vp.length / playbackSpeed)
+                                              : 10f);
+            float elapsed = 0f;
+            while (elapsed < duration && !_skipVideo)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
 
             yield return FadeOverlay(0f, 1f, videoFadeOut);
             vp.Stop();
@@ -266,51 +279,46 @@ namespace RunLight.UI
 
         private GameObject BuildDialogueBox(Transform parent)
         {
-            var box = new GameObject("DialogueBox", typeof(Image));
+            // 全螢幕容器（無背景，純文字旁白風格）
+            var box = new GameObject("DialogueBox", typeof(RectTransform));
             box.transform.SetParent(parent, false);
-            var boxImg = box.GetComponent<Image>();
-            boxImg.color        = DialogueBgColor;
-            boxImg.raycastTarget = false;
             var boxRt = box.GetComponent<RectTransform>();
-            boxRt.anchorMin = new Vector2(0f, 0f);
-            boxRt.anchorMax = new Vector2(1f, 0.28f);
+            boxRt.anchorMin = Vector2.zero;
+            boxRt.anchorMax = Vector2.one;
             boxRt.offsetMin = boxRt.offsetMax = Vector2.zero;
 
-            var nameTag = new GameObject("NameTag", typeof(Image));
-            nameTag.transform.SetParent(box.transform, false);
-            var ntImg = nameTag.GetComponent<Image>();
-            ntImg.color        = new Color(AccentColor.r, AccentColor.g, AccentColor.b, 0.95f);
-            ntImg.raycastTarget = false;
-            var ntRt = nameTag.GetComponent<RectTransform>();
-            ntRt.anchorMin        = new Vector2(0f, 1f);
-            ntRt.anchorMax        = new Vector2(0f, 1f);
-            ntRt.pivot            = new Vector2(0f, 0f);
-            ntRt.anchoredPosition = new Vector2(48f, 0f);
-            ntRt.sizeDelta        = new Vector2(240f, 56f);
+            // 名字（旁白模式下通常留空，保留欄位供未來使用）
+            _nameText = MakeTxt("NameText", box.transform, "", 32,
+                AccentColor, FontStyle.Bold);
+            var ntRt = _nameText.rectTransform;
+            ntRt.anchorMin        = new Vector2(0.5f, 0.5f);
+            ntRt.anchorMax        = new Vector2(0.5f, 0.5f);
+            ntRt.pivot            = new Vector2(0.5f, 0f);
+            ntRt.anchoredPosition = new Vector2(0f, 30f);
+            ntRt.sizeDelta        = new Vector2(1200f, 50f);
+            _nameText.alignment   = TextAnchor.MiddleCenter;
 
-            _nameText = MakeTxt("NameText", nameTag.transform, "", 34,
-                new Color(0.08f, 0.08f, 0.10f), FontStyle.Bold);
-            Stretch(_nameText.rectTransform);
-            _nameText.alignment = TextAnchor.MiddleCenter;
-
-            _dialogueText = MakeTxt("DialogueText", box.transform, "", 38, TextColor, FontStyle.Normal);
+            // 主文字：置中，字體稍大
+            _dialogueText = MakeTxt("DialogueText", box.transform, "", 48, TextColor, FontStyle.Normal);
             var dtRt = _dialogueText.rectTransform;
-            dtRt.anchorMin = new Vector2(0f, 0f);
-            dtRt.anchorMax = new Vector2(1f, 1f);
-            dtRt.offsetMin = new Vector2(60f, 24f);
-            dtRt.offsetMax = new Vector2(-60f, -16f);
-            _dialogueText.alignment          = TextAnchor.UpperLeft;
+            dtRt.anchorMin = new Vector2(0.5f, 0.5f);
+            dtRt.anchorMax = new Vector2(0.5f, 0.5f);
+            dtRt.pivot     = new Vector2(0.5f, 0.5f);
+            dtRt.anchoredPosition = Vector2.zero;
+            dtRt.sizeDelta        = new Vector2(1200f, 400f);
+            _dialogueText.alignment          = TextAnchor.MiddleCenter;
             _dialogueText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _dialogueText.verticalOverflow   = VerticalWrapMode.Overflow;
 
+            // 提示文字：畫面底部中央
             _hintText = MakeTxt("HintText", box.transform, "", 26, HintColor, FontStyle.Italic);
             var htRt = _hintText.rectTransform;
-            htRt.anchorMin        = new Vector2(1f, 0f);
-            htRt.anchorMax        = new Vector2(1f, 0f);
-            htRt.pivot            = new Vector2(1f, 0f);
-            htRt.anchoredPosition = new Vector2(-40f, 18f);
-            htRt.sizeDelta        = new Vector2(320f, 40f);
-            _hintText.alignment   = TextAnchor.MiddleRight;
+            htRt.anchorMin        = new Vector2(0.5f, 0f);
+            htRt.anchorMax        = new Vector2(0.5f, 0f);
+            htRt.pivot            = new Vector2(0.5f, 0f);
+            htRt.anchoredPosition = new Vector2(0f, 40f);
+            htRt.sizeDelta        = new Vector2(600f, 40f);
+            _hintText.alignment   = TextAnchor.MiddleCenter;
 
             return box;
         }

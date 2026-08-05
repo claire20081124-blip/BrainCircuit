@@ -100,6 +100,15 @@ namespace RunLight.Player
             _cc.Move((move * walkSpeed + _verticalVelocity) * Time.deltaTime);
         }
 
+        /// <summary>強制設定玩家朝向（供躲藏點等機制呼叫）。</summary>
+        public void ForceRotation(float yaw, float pitch)
+        {
+            transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            _pitch = Mathf.Clamp(pitch, -maxPitch, maxPitch);
+            if (cameraTransform != null)
+                cameraTransform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
+        }
+
         // 點擊 Game 視窗鎖定游標；Escape 解鎖
         private void OnApplicationFocus(bool hasFocus)
         {

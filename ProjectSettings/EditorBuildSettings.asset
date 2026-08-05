@@ -6,14 +6,15 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/Prologue.unity
+    path: "Assets/_Recovery(\u904A\u6232\u5206\u6BB5\u6A21/\u958B\u59CB\u904A\u6232.unity"
+    guid: ca6ef17a69c8a5c4c8e8fa4ffc147f28
+  - enabled: 1
+    path: "Assets/_Recovery(\u904A\u6232\u5206\u6BB5\u6A21/\u958B\u5834\u52D5\u756B
+      \u6587\u5B57\u6846.unity"
     guid: 16e73173611573841b553d56cd6db357
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
-    path: "Assets/_Scenes/\u5834\u666F.unity"
-    guid: 9fa45ea994f0b3e459fa456e5021f470
+    path: "Assets/_Recovery(\u904A\u6232\u5206\u6BB5\u6A21/\u9032\u51653D\u5834\u666F.unity"
+    guid: 44d6f534636637f4595b94087605ebd2
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

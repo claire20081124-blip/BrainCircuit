@@ -55,12 +55,20 @@ namespace RunLight.Enemy
                 _cam.transform.rotation * Vector3.up);
         }
 
+        private static bool PlayerIsHiding()
+        {
+            foreach (var hs in FindObjectsByType<RunLight.Interaction.HidingSpot>(FindObjectsSortMode.None))
+                if (hs.IsHiding) return true;
+            return false;
+        }
+
         private void DoPatrol()
         {
             if (waypoints == null || waypoints.Length == 0) return;
 
-            // 偵測玩家
-            if (_player != null && Vector3.Distance(transform.position, _player.position) <= detectRange)
+            // 偵測玩家（躲藏中不追）
+            if (_player != null && !PlayerIsHiding() &&
+                Vector3.Distance(transform.position, _player.position) <= detectRange)
             {
                 _state = State.Chase;
                 return;
