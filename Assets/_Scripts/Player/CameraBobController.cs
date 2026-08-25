@@ -1,0 +1,34 @@
+using UnityEngine;
+
+namespace RunLight.Player
+{
+    public class CameraBobController : MonoBehaviour
+    {
+        [SerializeField] private float bobSpeed   = 6f;
+        [SerializeField] private float bobAmountY = 0.5f;
+
+        private Vector3 _restPos;
+        private float   _timer;
+
+        private void Start()
+        {
+            _restPos = transform.localPosition;
+        }
+
+        private void Update()
+        {
+            float h = Input.GetAxisRaw("Horizontal");
+            float v = Input.GetAxisRaw("Vertical");
+
+            if (Mathf.Abs(h) > 0.01f || Mathf.Abs(v) > 0.01f)
+            {
+                _timer += Time.deltaTime * bobSpeed;
+                transform.localPosition = _restPos + new Vector3(0f, Mathf.Sin(_timer) * bobAmountY, 0f);
+            }
+            else
+            {
+                transform.localPosition = Vector3.Lerp(transform.localPosition, _restPos, Time.deltaTime * 8f);
+            }
+        }
+    }
+}
