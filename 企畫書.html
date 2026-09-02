@@ -1,0 +1,489 @@
+<title>613</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Noto+Serif+SC:wght@300;400;600&display=swap">
+
+<style>
+  :root {
+    --bg:       #07090F;
+    --surface:  #0D1320;
+    --border:   #1A2840;
+    --text:     #A8BCCC;
+    --text-hi:  #D8E8F0;
+    --text-lo:  #3C4E62;
+    --cyan:     #00C8A8;
+    --cyan-dim: rgba(0,200,168,.10);
+    --cyan-glow:rgba(0,200,168,.25);
+    --amber:    #D49840;
+    --amber-dim:rgba(212,152,64,.10);
+    --red:      #E04444;
+    --red-dim:  rgba(224,68,68,.10);
+    --mono:     'Share Tech Mono', 'Courier New', monospace;
+    --serif:    'Noto Serif SC', 'Songti SC', Georgia, serif;
+    --col-w:    820px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 2;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,.07) 3px, rgba(0,0,0,.07) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .container { max-width: var(--col-w); margin: 0 auto; padding: 0 28px; }
+
+  /* ── Header ── */
+  .header {
+    padding: 52px 0 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .title-block {}
+
+  .header-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: .22em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-tag::before { content: '▮'; animation: blink 1.1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .header-tag::before { animation: none; } }
+
+  .game-title {
+    font-family: var(--mono);
+    font-size: clamp(42px, 8vw, 72px);
+    color: var(--text-hi);
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+
+  .game-title span { color: var(--cyan); text-shadow: 0 0 28px var(--cyan-glow); }
+
+  .meta-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: right;
+  }
+
+  .meta-item {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: .14em;
+  }
+
+  .meta-item .k { color: var(--text-lo); }
+  .meta-item .v { color: var(--text-hi); margin-left: 8px; }
+
+  /* ── Section ── */
+  section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 36px;
+  }
+
+  h2::before { content: '// '; opacity: .4; }
+
+  /* ── Mechanic table ── */
+  .mech-table { width: 100%; border-collapse: collapse; }
+
+  .mech-table tr { border-bottom: 1px solid var(--border); }
+  .mech-table tr:last-child { border-bottom: none; }
+
+  .mech-table td {
+    padding: 26px 18px;
+    vertical-align: top;
+    font-size: 17px;
+    line-height: 1.85;
+  }
+
+  .mech-table td:first-child {
+    width: 40px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 22px;
+    padding-top: 28px;
+  }
+
+  .mech-table td:nth-child(2) {
+    width: 164px;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: .12em;
+    color: var(--text-hi);
+    text-transform: uppercase;
+    padding-top: 29px;
+    white-space: nowrap;
+  }
+
+  .mech-table td:last-child { color: var(--text); }
+
+  .mech-table tr.cyan  td:nth-child(2) { color: var(--cyan); }
+  .mech-table tr.amber td:nth-child(2) { color: var(--amber); }
+  .mech-table tr.red   td:nth-child(2) { color: var(--red); }
+
+  .mech-table tr:hover td { background: rgba(255,255,255,.015); }
+
+  strong { color: var(--text-hi); font-weight: 600; }
+
+  .key {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1px 7px;
+    border-radius: 2px;
+    color: var(--text-hi);
+  }
+
+  /* ── Status table ── */
+  .status-table { width: 100%; border-collapse: collapse; }
+
+  .status-table tr { border-bottom: 1px solid var(--border); }
+  .status-table tr:last-child { border-bottom: none; }
+
+  .status-table td {
+    padding: 20px 16px;
+    vertical-align: middle;
+    font-size: 17px;
+  }
+
+  .status-table td:first-child { width: 36px; text-align: center; }
+
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    vertical-align: middle;
+  }
+
+  .dot.done    { background: var(--cyan);  box-shadow: 0 0 8px var(--cyan-glow); }
+  .dot.wip     { background: var(--amber); }
+  .dot.planned { background: var(--text-lo); }
+
+  .status-table td:nth-child(2) { color: var(--text); }
+
+  .status-table td:last-child {
+    width: 120px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+
+  .tag-done    { color: var(--cyan); }
+  .tag-wip     { color: var(--amber); }
+  .tag-planned { color: var(--text-lo); }
+
+  .status-table tr.wip-row td:nth-child(2) { color: var(--amber); }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 28px;
+    margin-top: 22px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: .16em;
+    color: var(--text-lo);
+    text-transform: uppercase;
+  }
+
+  /* ── Notes ── */
+  .note {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-lo);
+    margin-top: 32px;
+    line-height: 1.8;
+    letter-spacing: .04em;
+  }
+
+  .note span { color: var(--amber); }
+
+  /* ── Footer ── */
+  .footer {
+    padding: 32px 0 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .footer-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-lo);
+    letter-spacing: .12em;
+  }
+
+  /* ── Table scroll wrapper ── */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .container { padding: 0 16px; }
+
+    .header { padding: 36px 0 28px; flex-direction: column; align-items: flex-start; gap: 20px; }
+    .meta-stack { text-align: left; }
+    .meta-item { font-size: 13px; }
+
+    section { padding: 48px 0; }
+
+    /* Mechanic table → stacked cards */
+    .mech-table { display: block; }
+    .mech-table tbody { display: block; }
+    .mech-table tr {
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      margin-bottom: 12px;
+      padding: 18px 16px;
+    }
+    .mech-table tr:last-child { margin-bottom: 0; }
+    .mech-table td {
+      display: block;
+      padding: 0;
+      font-size: 16px;
+      line-height: 1.75;
+      width: auto !important;
+      white-space: normal !important;
+    }
+    .mech-table td:first-child { font-size: 20px; margin-bottom: 6px; text-align: left; }
+    .mech-table td:nth-child(2) { font-size: 12px; margin-bottom: 8px; }
+    .mech-table td:last-child { color: var(--text); }
+
+    /* Status table → stacked */
+    .status-table { display: block; }
+    .status-table tbody { display: block; }
+    .status-table tr {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .status-table tr:last-child { border-bottom: none; }
+    .status-table td { display: block; padding: 0; font-size: 15px; }
+    .status-table td:first-child { width: 20px; flex-shrink: 0; }
+    .status-table td:nth-child(2) { flex: 1; }
+    .status-table td:last-child { width: auto; font-size: 11px; flex-shrink: 0; }
+
+    .note { font-size: 13px; }
+    .legend { gap: 16px; }
+  }
+</style>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="container" style="width:100%;max-width:var(--col-w);margin:0 auto;padding:0 28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+    <div class="title-block">
+      <div class="header-tag">BrainCircuit · 開發文件</div>
+      <div class="game-title">腦迴路<span>.</span></div>
+      <div class="game-title" style="font-size:clamp(18px,3vw,28px);color:var(--text-lo);margin-top:4px;">PROJECT 613</div>
+    </div>
+    <div class="meta-stack">
+      <div class="meta-item"><span class="k">ENGINE</span><span class="v">Unity 6 LTS · URP</span></div>
+      <div class="meta-item"><span class="k">PLATFORM</span><span class="v">PC（暫定）</span></div>
+      <div class="meta-item"><span class="k">GENRE</span><span class="v">第一人稱 潛行解謎</span></div>
+      <div class="meta-item"><span class="k">STATUS</span><span class="v" style="color:var(--amber);">Chapter 1 原型</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mechanics ── -->
+<section>
+  <div class="container">
+    <h2>核心機制</h2>
+    <table class="mech-table">
+      <tr class="cyan">
+        <td style="color:var(--cyan);">◉</td>
+        <td>神經組織（腦子）</td>
+        <td>場景中散落，外觀無法分辨好壞。玩家靠近按 <span class="key">E</span>→縮放拾取動畫（0.45 s）→彈出 Q&A 視窗。答對智力 +，答錯智力 −。<strong>壞腦子</strong>（已崩壞）無論怎麼答都扣分。</td>
+      </tr>
+      <tr class="cyan">
+        <td style="color:var(--cyan);">▓</td>
+        <td>智力條</td>
+        <td>同時是<strong>血條</strong>、意識穩定度指標與敘事進度門檻。低於 40% 無法解讀紙條；歸零觸發「覆寫」事件，視同死亡送回起點。</td>
+      </tr>
+      <tr class="cyan">
+        <td style="color:var(--cyan);">?</td>
+        <td>Q&amp;A 測驗</td>
+        <td>是非題形式。左 <span class="key">Z</span> 或點 ✓ = 是；右 <span class="key">X</span> 或點 ✗ = 否。支援鍵盤與滑鼠。題目與正確答案在 Inspector 直接填寫，場景可自由配置多組題目。</td>
+      </tr>
+      <tr class="red">
+        <td style="color:var(--red);">▲</td>
+        <td>清道夫（巡邏 AI）</td>
+        <td>規律巡邏路線，視線偵測玩家。追上後智力大量扣除，送回起點。掉落房間鑰匙（30% 機率）。</td>
+      </tr>
+      <tr class="red">
+        <td style="color:var(--red);">◈</td>
+        <td>感知節點（監視器）</td>
+        <td>玩家可短暫關閉以穿越監控區。固定時間後重啟；若玩家仍在感知範圍，立即召喚多台清道夫。</td>
+      </tr>
+      <tr class="amber">
+        <td style="color:var(--amber);">□</td>
+        <td>躲藏（置物櫃）</td>
+        <td>按 <span class="key">E</span> 進入。若進入時已被清道夫目擊，躲藏判定失效。</td>
+      </tr>
+      <tr class="amber">
+        <td style="color:var(--amber);">≡</td>
+        <td>紙條</td>
+        <td>道具欄第一格，初始為無意義線條。智力 ≥ 40% 解鎖部分文字；≥ 80% 顯示完整內容（含出口密碼）。</td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-lo);">⬡</td>
+        <td>密碼門（出口）</td>
+        <td>雙重驗證：<strong>實體鑰匙</strong>（清道夫掉落）+ <strong>數字密碼</strong>（從紙條取得），兩者缺一不可。</td>
+      </tr>
+    </table>
+  </div>
+</section>
+
+<!-- ── Development Status ── -->
+<section>
+  <div class="container">
+    <h2>開發現況</h2>
+    <table class="status-table">
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>第一人稱移動控制器（WASD + 滑鼠視角）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>腦子互動系統（E 鍵觸發 + 縮放拾取動畫）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>腦子旋轉（Spin）效果</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>認知測驗 Q&A UI（是非題 ✓ / ✗，鍵盤 + 滑鼠）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>智力條 UI（GainBrainPower / TakeDamage）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>多腦子共存場景（同幀鎖 _lastEFrame 防雙觸發）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>壞腦子機制（isBadBrain，答什麼都扣分）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>走路手部晃動動畫（HandBobController）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr>
+        <td><span class="dot done"></span></td>
+        <td>走路鏡頭晃動（CameraBobController）</td>
+        <td class="tag-done">完成</td>
+      </tr>
+      <tr class="wip-row">
+        <td><span class="dot wip"></span></td>
+        <td>旁白對話系統（序章過場 / 艙室覺醒文字）</td>
+        <td class="tag-wip">進行中</td>
+      </tr>
+      <tr class="wip-row">
+        <td><span class="dot wip"></span></td>
+        <td>紙條漸進解鎖（40% / 80% 智力門檻）</td>
+        <td class="tag-wip">進行中</td>
+      </tr>
+      <tr>
+        <td><span class="dot planned"></span></td>
+        <td>清道夫巡邏 AI（NavMesh + 視線偵測 + 追逐）</td>
+        <td class="tag-planned">規劃中</td>
+      </tr>
+      <tr>
+        <td><span class="dot planned"></span></td>
+        <td>感知節點（監視器關閉 / 重啟 + 召喚清道夫）</td>
+        <td class="tag-planned">規劃中</td>
+      </tr>
+      <tr>
+        <td><span class="dot planned"></span></td>
+        <td>躲藏系統（置物櫃進出）</td>
+        <td class="tag-planned">規劃中</td>
+      </tr>
+      <tr>
+        <td><span class="dot planned"></span></td>
+        <td>密碼門雙重驗證（鑰匙 + 0613）</td>
+        <td class="tag-planned">規劃中</td>
+      </tr>
+      <tr>
+        <td><span class="dot planned"></span></td>
+        <td>序章新聞過場（影片 / UI 動畫）</td>
+        <td class="tag-planned">規劃中</td>
+      </tr>
+    </table>
+
+    <div class="legend">
+      <div class="legend-item"><span class="dot done"></span> 完成</div>
+      <div class="legend-item"><span class="dot wip"></span> 進行中</div>
+      <div class="legend-item"><span class="dot planned"></span> 規劃中</div>
+    </div>
+
+    <div class="note">
+      <span>// NOTE</span> &nbsp;清道夫、感知節點、躲藏、密碼門為第一章必要機制，預計下一階段實作。<br>
+      Q&A 題目、腦子位置、智力增減數值皆可在 Inspector 直接配置，無需修改程式碼。
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<div class="container">
+  <div class="footer">
+    <div class="footer-text">PROJECT 613 · BRAINCIRCUIT · Chapter 1 開發文件</div>
+    <div class="footer-text">2026 · 內容持續更新中</div>
+  </div>
+</div>
