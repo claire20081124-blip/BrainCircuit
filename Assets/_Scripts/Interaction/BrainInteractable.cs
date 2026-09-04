@@ -19,10 +19,6 @@ namespace RunLight.Interaction
         public int loseAmount;
     }
 
-    /// <summary>
-    /// 掛在腦子物件上。玩家靠近按 E → 彈出認知測驗 → 影響智力條。
-    /// 勾選 isBadBrain = 壞腦子，無論選什麼都扣分。
-    /// </summary>
     public class BrainInteractable : MonoBehaviour
     {
         [Header("題目")]
@@ -41,10 +37,32 @@ namespace RunLight.Interaction
         [Header("旋轉速度")]
         [SerializeField] private float spinSpeed = 60f;
 
-        private static int _lastEFrame = -1; // 每幀只讓一個腦吃 E
+        // 每幀最近的腦子才能觸發（Update 投票，LateUpdate 執行）
+        private static BrainInteractable _candidate;
+        private static float             _candidateDist;
+        private static int               _candidateFrame = -1;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            _candidate      = null;
+            _candidateDist  = float.MaxValue;
+            _candidateFrame = -1;
+        }
 
         private Transform _player;
         private bool      _used;
+
+        private void Awake()
+        {
+            // 遞迴找最近一層有 MeshRenderer 的子物件（自己這層除外）
+            if (brainModel == null)
+            {
+                var mr = GetComponentInChildren<MeshRenderer>();
+                if (mr != null) brainModel = mr.gameObject;
+            }
+            Debug.Log($"[Brain] {name} Awake → brainModel={brainModel?.name} rootPos={transform.position} modelPos={brainModel?.transform.position}");
+        }
 
         private void Start()
         {
@@ -57,21 +75,54 @@ namespace RunLight.Interaction
             if (!_used && brainModel != null)
                 brainModel.transform.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.World);
 
-            if (_used || _player == null) return;
-            if (BrainQAUI.IsOpen) return;
+            if (_player == null)
+            {
+                var go = GameObject.FindWithTag("Player");
+                if (go != null) _player = go.transform;
+            }
 
-            float dist = Vector3.Distance(transform.position, _player.position);
+            // 用球體的實際世界位置算距離，而非 Root 的 pivot
+            Vector3 center = brainModel != null ? brainModel.transform.position : transform.position;
+
+            if (Input.GetKeyDown(KeyCode.E))
+            {
+                float d = _player != null ? Vector3.Distance(center, _player.position) : -1f;
+                Debug.Log($"[Brain] {name} | dist={d:F2} | 球位置={center} | 玩家={_player?.name} 玩家位置={_player?.position}");
+            }
+
+            if (_used || _player == null) return;
+
+            float dist = Vector3.Distance(center, _player.position);
             if (dist > interactRange) return;
             if (!Input.GetKeyDown(KeyCode.E)) return;
-            if (_lastEFrame == Time.frameCount) return;
-            _lastEFrame = Time.frameCount;
-            Interact();
+            if (BrainQAUI.IsOpen) return;
+
+            // 投票：距離最近的腦子成為本幀候選
+            if (_candidateFrame != Time.frameCount)
+            {
+                _candidateFrame = Time.frameCount;
+                _candidate      = null;
+                _candidateDist  = float.MaxValue;
+            }
+            if (dist < _candidateDist)
+            {
+                _candidateDist = dist;
+                _candidate     = this;
+                Debug.Log($"[Brain] {name} 成為候選（dist={dist:F2}）");
+            }
         }
 
+        private void LateUpdate()
+        {
+            if (_candidate == this && _candidateFrame == Time.frameCount)
+                Interact();
+        }
 
         private void Interact()
         {
+            Debug.Log($"[Brain] ★★★ {name} 觸發！pos={transform.position} ★★★");
             _used = true;
+            BrainQAUI.Lock();
             StartCoroutine(PickupRoutine());
         }
 
