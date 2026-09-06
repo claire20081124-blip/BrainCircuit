@@ -10,48 +10,62 @@ namespace RunLight.Player
         [SerializeField] private float walkSpeed   = 3f;
         [SerializeField] private float sprintSpeed = 6f;
 
+        [Header("體力")]
+        [SerializeField] private float maxStamina        = 100f;
+        [SerializeField] private float staminaDrainRate  = 25f;   // 每秒消耗
+        [SerializeField] private float staminaRegenRate  = 35f;   // 每秒回復
+        [SerializeField] private float slowdownThreshold = 0.3f;  // 低於此比例開始降速
+
         [Header("視角")]
         [SerializeField] private float sensitivity = 0.15f;
         [SerializeField] private float maxPitch    = 80f;
         [Tooltip("拖入 Player 底下的 Camera 物件")]
         [SerializeField] private Transform cameraTransform;
 
+        [Header("游標")]
+        [SerializeField] private KeyCode cursorToggleKey = KeyCode.Tab;
+
+        public float StaminaRatio   => _stamina / maxStamina;
+        public bool  IsSprinting    { get; private set; }
+        public bool  MovementLocked { get; set; }
+
         private CharacterController _cc;
         private Vector3 _verticalVelocity;
         private float   _pitch;
-        private float   _debugTimer;
+        private float   _stamina;
+        private bool    _exhausted;
         private const float Gravity = -15f;
 
         private void Awake() => _cc = GetComponent<CharacterController>();
 
         private void Start()
         {
-            // 遊戲開始時自動貼到地板，避免從高處掉落
+            _stamina = maxStamina;
+
             if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out RaycastHit hit, 100f))
-            {
                 transform.position = new Vector3(transform.position.x, hit.point.y, transform.position.z);
-            }
         }
 
         private void Update()
         {
-            _debugTimer += Time.deltaTime;
-            if (_debugTimer >= 1f)
-            {
-                _debugTimer = 0f;
-                var kb = Keyboard.current;
-                float oldH = 0f;
-                try { oldH = Input.GetAxis("Horizontal"); } catch { }
-                Debug.Log($"[FPS] KB={( kb != null ? "OK" : "NULL" )}  W(new)={kb?.wKey.isPressed}  H(old)={oldH:F2}  grounded={_cc.isGrounded}");
-            }
+            if (Input.GetKeyDown(cursorToggleKey))
+                ToggleCursor();
+
+            if (MovementLocked) return;
 
             Look();
             Move();
         }
 
+        private void ToggleCursor()
+        {
+            bool locked = Cursor.lockState == CursorLockMode.Locked;
+            Cursor.lockState = locked ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible   = locked;
+        }
+
         private void Look()
         {
-            // 只在有 cursor lock 時才轉視角，避免干擾測試
             if (Cursor.lockState != CursorLockMode.Locked) return;
 
             float dx = 0f, dy = 0f;
@@ -74,7 +88,6 @@ namespace RunLight.Player
         {
             float h = 0f, v = 0f;
 
-            // 新版 Input System
             var kb = Keyboard.current;
             if (kb != null)
             {
@@ -83,28 +96,47 @@ namespace RunLight.Player
                 if (kb.dKey.isPressed) h += 1f;
                 if (kb.aKey.isPressed) h -= 1f;
             }
+            try { h += Input.GetAxis("Horizontal"); v += Input.GetAxis("Vertical"); } catch { }
 
-            // 舊版備援
-            try
-            {
-                h += Input.GetAxis("Horizontal");
-                v += Input.GetAxis("Vertical");
-            }
-            catch { }
-
-            // 重力
             if (_cc.isGrounded && _verticalVelocity.y < 0f)
                 _verticalVelocity.y = -2f;
             _verticalVelocity.y += Gravity * Time.deltaTime;
 
-            bool sprinting = kb != null && kb.qKey.isPressed;
-            float speed = sprinting ? sprintSpeed : walkSpeed;
+            bool moving     = Mathf.Abs(h) > 0.01f || Mathf.Abs(v) > 0.01f;
+            bool wantSprint = kb != null && kb.qKey.isPressed;
+
+            // 體力消耗 / 回復
+            if (wantSprint && moving && !_exhausted && _stamina > 0f)
+            {
+                _stamina -= staminaDrainRate * Time.deltaTime;
+                if (_stamina <= 0f) { _stamina = 0f; _exhausted = true; }
+            }
+            else
+            {
+                _stamina += staminaRegenRate * Time.deltaTime;
+                if (_stamina >= maxStamina) _stamina = maxStamina;
+                if (_exhausted && _stamina >= maxStamina * 0.25f) _exhausted = false;
+            }
+
+            IsSprinting = wantSprint && moving && !_exhausted && _stamina > 0f;
+
+            float speed;
+            if (IsSprinting)
+            {
+                float ratio = _stamina / maxStamina;
+                speed = ratio < slowdownThreshold
+                    ? Mathf.Lerp(walkSpeed, sprintSpeed, ratio / slowdownThreshold)
+                    : sprintSpeed;
+            }
+            else
+            {
+                speed = walkSpeed;
+            }
 
             var move = transform.right * h + transform.forward * v;
             _cc.Move((move * speed + _verticalVelocity) * Time.deltaTime);
         }
 
-        /// <summary>強制設定玩家朝向（供躲藏點等機制呼叫）。</summary>
         public void ForceRotation(float yaw, float pitch)
         {
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
@@ -113,7 +145,6 @@ namespace RunLight.Player
                 cameraTransform.localRotation = Quaternion.Euler(_pitch, 0f, 0f);
         }
 
-        // 點擊 Game 視窗鎖定游標；Escape 解鎖
         private void OnApplicationFocus(bool hasFocus)
         {
             if (!hasFocus)

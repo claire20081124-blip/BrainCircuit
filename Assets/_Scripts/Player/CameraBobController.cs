@@ -15,10 +15,14 @@ namespace RunLight.Player
 
         private Vector3 _restPos;
         private float   _timer;
+        private FirstPersonController _fpc;
 
         private void Start()
         {
             _restPos = transform.localPosition;
+            _fpc = GetComponentInParent<FirstPersonController>();
+            if (_fpc == null)
+                _fpc = FindObjectOfType<FirstPersonController>();
         }
 
         private void Update()
@@ -26,7 +30,9 @@ namespace RunLight.Player
             float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");
 
-            bool sprinting = Keyboard.current != null && Keyboard.current.qKey.isPressed;
+            bool sprinting = _fpc != null ? _fpc.IsSprinting
+                           : Keyboard.current != null && Keyboard.current.qKey.isPressed;
+
             float speed  = sprinting ? sprintBobSpeed   : bobSpeed;
             float amount = sprinting ? sprintBobAmountY : bobAmountY;
 

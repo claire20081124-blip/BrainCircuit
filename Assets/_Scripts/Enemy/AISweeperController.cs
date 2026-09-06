@@ -14,6 +14,7 @@ namespace RunLight.Enemy
         [Header("偵測")]
         [SerializeField] private float detectRange  = 8f;
         [SerializeField] private float loseRange    = 12f;
+        [SerializeField] private float catchRange   = 1.2f;
         [SerializeField] private float returnDelay  = 20f;
 
         [Header("2D Sprite（Billboard）")]
@@ -26,12 +27,22 @@ namespace RunLight.Enemy
         private float     _lostTimer;
         private Vector3   _returnTarget;
         private Camera    _cam;
+        private Vector3   _startPosition;
 
         private void Start()
         {
-            _cam    = Camera.main;
-            var go  = GameObject.FindWithTag("Player");
+            _cam           = Camera.main;
+            _startPosition = transform.position;
+            var go         = GameObject.FindWithTag("Player");
             if (go != null) _player = go.transform;
+        }
+
+        public void ResetToStart()
+        {
+            transform.position = _startPosition;
+            _waypointIndex     = 0;
+            _lostTimer         = 0f;
+            _state             = State.Patrol;
         }
 
         private void Update()
@@ -87,6 +98,14 @@ namespace RunLight.Enemy
             if (_player == null) { _state = State.Patrol; return; }
 
             float dist = Vector3.Distance(transform.position, _player.position);
+
+            // 抓到玩家
+            if (dist <= catchRange)
+            {
+                _state = State.Patrol;
+                RunLight.UI.CaughtUI.TriggerCaught(this);
+                return;
+            }
 
             if (dist > loseRange)
             {
