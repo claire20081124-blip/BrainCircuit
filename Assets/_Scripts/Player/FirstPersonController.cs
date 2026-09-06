@@ -137,6 +137,9 @@ namespace RunLight.Player
             _cc.Move((move * speed + _verticalVelocity) * Time.deltaTime);
         }
 
+        public void SetSensitivity(float s) => sensitivity = s;
+        public float GetSensitivity()        => sensitivity;
+
         public void ForceRotation(float yaw, float pitch)
         {
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
