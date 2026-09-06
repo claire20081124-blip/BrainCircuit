@@ -46,7 +46,7 @@ namespace RunLight.UI
         public static bool IsOpen { get; private set; }
 
         // 讓 BrainInteractable 在動畫開始時就鎖住，不等 Show()
-        internal static void Lock() { IsOpen = true; Debug.Log("[QA] Lock → IsOpen=true"); }
+        internal static void Lock() { IsOpen = true; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetIsOpen() { IsOpen = false; }
@@ -147,7 +147,6 @@ namespace RunLight.UI
         private void Answer(int index)
         {
             IsOpen = false;
-            Debug.Log("[QA] Answer → IsOpen=false");
             _panel.SetActive(false);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible   = false;

@@ -42,6 +42,12 @@ namespace RunLight.UI
         [Tooltip("影片總秒數（填影片實際長度，0 = 自動偵測）")]
         [SerializeField] private float videoDuration   = 0f;
 
+        [Header("場景切換")]
+        [Tooltip("對話結束後淡黑的秒數")]
+        [SerializeField] private float sceneTransitionFade = 1.5f;
+        [Tooltip("全黑後停留幾秒再載入場景")]
+        [SerializeField] private float sceneTransitionHold = 0.5f;
+
         [Header("對話（影片結束後）")]
         [SerializeField] private DialogueLine[] dialogueLines;
         [SerializeField] private float charInterval = 0.04f;
@@ -129,7 +135,9 @@ namespace RunLight.UI
         // ── 影片播放 ──────────────────────────────────────────────────────────
         private IEnumerator PlayVideo()
         {
-            var rt = new RenderTexture((int)openingVideo.width, (int)openingVideo.height, 0);
+            int rtW = Mathf.Min((int)openingVideo.width,  1920);
+            int rtH = Mathf.Min((int)openingVideo.height, 1080);
+            var rt = new RenderTexture(rtW, rtH, 0);
             _videoDisplay.texture = rt;
             _videoDisplay.gameObject.SetActive(true);
 
@@ -139,6 +147,7 @@ namespace RunLight.UI
             vp.renderMode      = VideoRenderMode.RenderTexture;
             vp.targetTexture   = rt;
             vp.audioOutputMode = VideoAudioOutputMode.Direct;
+            vp.skipOnDrop      = true;  // 跟不上時跳幀，避免卡頓
             vp.Prepare();
 
             yield return new WaitUntil(() => vp.isPrepared);
@@ -209,7 +218,8 @@ namespace RunLight.UI
         private IEnumerator FadeAndLoad()
         {
             _phase = Phase.Done;
-            yield return FadeOverlay(0f, 1f, 0.65f);
+            yield return FadeOverlay(0f, 1f, sceneTransitionFade);
+            yield return new WaitForSeconds(sceneTransitionHold);
 
             if (!Application.CanStreamedLevelBeLoaded(nextSceneName))
             {

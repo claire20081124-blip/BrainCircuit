@@ -55,13 +55,11 @@ namespace RunLight.Interaction
 
         private void Awake()
         {
-            // 遞迴找最近一層有 MeshRenderer 的子物件（自己這層除外）
             if (brainModel == null)
             {
                 var mr = GetComponentInChildren<MeshRenderer>();
                 if (mr != null) brainModel = mr.gameObject;
             }
-            Debug.Log($"[Brain] {name} Awake → brainModel={brainModel?.name} rootPos={transform.position} modelPos={brainModel?.transform.position}");
         }
 
         private void Start()
@@ -84,12 +82,6 @@ namespace RunLight.Interaction
             // 用球體的實際世界位置算距離，而非 Root 的 pivot
             Vector3 center = brainModel != null ? brainModel.transform.position : transform.position;
 
-            if (Input.GetKeyDown(KeyCode.E))
-            {
-                float d = _player != null ? Vector3.Distance(center, _player.position) : -1f;
-                Debug.Log($"[Brain] {name} | dist={d:F2} | 球位置={center} | 玩家={_player?.name} 玩家位置={_player?.position}");
-            }
-
             if (_used || _player == null) return;
 
             float dist = Vector3.Distance(center, _player.position);
@@ -108,7 +100,6 @@ namespace RunLight.Interaction
             {
                 _candidateDist = dist;
                 _candidate     = this;
-                Debug.Log($"[Brain] {name} 成為候選（dist={dist:F2}）");
             }
         }
 
@@ -120,7 +111,6 @@ namespace RunLight.Interaction
 
         private void Interact()
         {
-            Debug.Log($"[Brain] ★★★ {name} 觸發！pos={transform.position} ★★★");
             _used = true;
             BrainQAUI.Lock();
             StartCoroutine(PickupRoutine());

@@ -286,11 +286,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.Prologue
   nextSceneName: "\u9032\u51653D\u5834\u666F"
-  openingVideo: {fileID: 32900000, guid: 2b05071ea36776d4b9b2bbe2af222a78, type: 3}
+  openingVideo: {fileID: 32900000, guid: 5101501486d1ae44c9ea6852d45aade0, type: 3}
   videoFadeIn: 0.5
-  videoFadeOut: 0.8
+  videoFadeOut: 0.6
   playbackSpeed: 1
-  videoDuration: 5
+  videoDuration: 6
   dialogueLines:
   - characterName: 1
     text: 111

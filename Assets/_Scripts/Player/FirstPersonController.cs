@@ -7,7 +7,8 @@ namespace RunLight.Player
     public class FirstPersonController : MonoBehaviour
     {
         [Header("移動")]
-        [SerializeField] private float walkSpeed = 3f;
+        [SerializeField] private float walkSpeed   = 3f;
+        [SerializeField] private float sprintSpeed = 6f;
 
         [Header("視角")]
         [SerializeField] private float sensitivity = 0.15f;
@@ -96,8 +97,11 @@ namespace RunLight.Player
                 _verticalVelocity.y = -2f;
             _verticalVelocity.y += Gravity * Time.deltaTime;
 
+            bool sprinting = kb != null && kb.qKey.isPressed;
+            float speed = sprinting ? sprintSpeed : walkSpeed;
+
             var move = transform.right * h + transform.forward * v;
-            _cc.Move((move * walkSpeed + _verticalVelocity) * Time.deltaTime);
+            _cc.Move((move * speed + _verticalVelocity) * Time.deltaTime);
         }
 
         /// <summary>強制設定玩家朝向（供躲藏點等機制呼叫）。</summary>
