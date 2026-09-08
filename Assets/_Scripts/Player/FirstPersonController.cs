@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using RunLight.UI;
 
 namespace RunLight.Player
 {
@@ -161,6 +162,7 @@ namespace RunLight.Player
         private void OnGUI()
         {
             if (MovementLocked) return;
+            if (UI.BrainQAUI.IsOpen) return;
 
             if (Cursor.lockState != CursorLockMode.Locked)
             {

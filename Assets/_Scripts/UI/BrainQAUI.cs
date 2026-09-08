@@ -6,10 +6,6 @@ using RunLight.Interaction;
 
 namespace RunLight.UI
 {
-    /// <summary>
-    /// 腦子認知測驗的彈出 UI（單例）。
-    /// 場景中不需要手動建立，BrainInteractable 第一次呼叫時會自動生成。
-    /// </summary>
     public class BrainQAUI : MonoBehaviour
     {
         private static BrainQAUI _instance;
@@ -27,12 +23,21 @@ namespace RunLight.UI
             }
         }
 
-        private GameObject    _panel;
-        private Canvas        _canvas;
-        private Text          _sysLabel;
-        private Text          _questionText;
-        private Text[]        _btnTexts  = new Text[2];
-        private Button[]      _buttons   = new Button[2];
+        private const float DefaultTimeLimit = 5f;
+
+        private GameObject   _panel;
+        private Canvas       _canvas;
+        private Text         _sysLabel;
+        private Text         _questionText;
+        private Text[]       _btnTexts = new Text[2];
+        private Button[]     _buttons  = new Button[2];
+
+        // 計時器
+        private Image        _timerFill;
+        private Text         _timerText;
+        private float        _timeRemaining;
+        private float        _timeTotal;
+        private bool         _timerRunning;
 
         private BrainQuestion _currentQ;
         private bool          _isBadBrain;
@@ -42,10 +47,12 @@ namespace RunLight.UI
         private static readonly Color PanelBg   = new(0.04f, 0.06f, 0.10f, 0.95f);
         private static readonly Color OverlayBg = new(0f,    0f,    0f,    0.70f);
         private static readonly Color AccentCol  = new(0.55f, 0.80f, 1.00f, 0.85f);
+        private static readonly Color TimerFull  = new(0.20f, 0.80f, 0.30f, 1.00f);
+        private static readonly Color TimerMid   = new(0.90f, 0.75f, 0.10f, 1.00f);
+        private static readonly Color TimerLow   = new(0.90f, 0.20f, 0.10f, 1.00f);
 
         public static bool IsOpen { get; private set; }
 
-        // 讓 BrainInteractable 在動畫開始時就鎖住，不等 Show()
         internal static void Lock() { IsOpen = true; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -62,10 +69,36 @@ namespace RunLight.UI
         private void Update()
         {
             if (_panel == null || !_panel.activeSelf) return;
+
+            // 計時器更新
+            if (_timerRunning)
+            {
+                _timeRemaining -= Time.deltaTime;
+                float ratio = Mathf.Clamp01(_timeRemaining / _timeTotal);
+
+                // 縮短計時條（anchorMax.x）
+                if (_timerFill != null)
+                {
+                    var rt = _timerFill.rectTransform;
+                    rt.anchorMax = new Vector2(ratio, rt.anchorMax.y);
+                    _timerFill.color = ratio > 0.5f
+                        ? Color.Lerp(TimerMid, TimerFull, (ratio - 0.5f) * 2f)
+                        : Color.Lerp(TimerLow, TimerMid, ratio * 2f);
+                }
+
+                if (_timerText != null)
+                    _timerText.text = Mathf.CeilToInt(Mathf.Max(0f, _timeRemaining)).ToString();
+
+                if (_timeRemaining <= 0f)
+                {
+                    _timerRunning = false;
+                    Answer(-1);   // 逾時 → 判錯
+                }
+            }
+
             if (Input.GetKeyDown(KeyCode.Z)) Answer(0);
             if (Input.GetKeyDown(KeyCode.X)) Answer(1);
 
-            // 手動偵測滑鼠點擊（繞過 EventSystem）
             if (Input.GetMouseButtonDown(0))
             {
                 for (int i = 0; i < _buttons.Length; i++)
@@ -81,7 +114,6 @@ namespace RunLight.UI
             }
         }
 
-        // ── 畫面空間拾取動畫 → 顯示 Q&A ───────────────────────────────────────
         public void FlyAndShow(Vector2 startScreen, Sprite icon,
             BrainQuestion q, bool isBadBrain, Action<bool> callback)
         {
@@ -93,7 +125,6 @@ namespace RunLight.UI
         {
             var canvasRt = _canvas.GetComponent<RectTransform>();
 
-            // 建立飛行圖示
             var fxGo = new GameObject("PickupFX", typeof(Image));
             fxGo.transform.SetParent(_canvas.transform, false);
             fxGo.transform.SetAsLastSibling();
@@ -105,10 +136,8 @@ namespace RunLight.UI
             fxRt.anchorMin = fxRt.anchorMax = fxRt.pivot = new Vector2(0.5f, 0.5f);
             fxRt.sizeDelta = new Vector2(100f, 100f);
 
-            // 螢幕座標 → Canvas 本地座標
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 canvasRt, startScreen, null, out Vector2 startLocal);
-
             fxRt.anchoredPosition = startLocal;
             fxRt.localScale       = Vector3.one * 1.5f;
 
@@ -125,7 +154,6 @@ namespace RunLight.UI
             Show(q, isBadBrain, callback);
         }
 
-        // ── 外部呼叫 ──────────────────────────────────────────────────────────
         public void Show(BrainQuestion q, bool isBadBrain, Action<bool> callback)
         {
             _currentQ   = q;
@@ -137,31 +165,42 @@ namespace RunLight.UI
             _btnTexts[0].text  = "✓";
             _btnTexts[1].text  = "✗";
 
+            // 重設計時器
+            _timeTotal     = q.timeLimit > 0f ? q.timeLimit : DefaultTimeLimit;
+            _timeRemaining = _timeTotal;
+            _timerRunning  = true;
+
+            if (_timerFill != null)
+            {
+                var rt = _timerFill.rectTransform;
+                rt.anchorMax = new Vector2(1f, rt.anchorMax.y);
+                _timerFill.color = TimerFull;
+            }
+            if (_timerText != null)
+                _timerText.text = Mathf.CeilToInt(_timeTotal).ToString();
+
             IsOpen = true;
             _panel.SetActive(true);
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
         }
 
-        // ── 玩家選答案 ────────────────────────────────────────────────────────
         private void Answer(int index)
         {
-            IsOpen = false;
+            _timerRunning = false;
+            IsOpen        = false;
             _panel.SetActive(false);
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible   = false;
 
-            // 清除 UI 焦點，讓輸入還給遊戲
             var es = UnityEngine.EventSystems.EventSystem.current;
             if (es != null) es.SetSelectedGameObject(null);
 
-            // index 0 = 是(true), index 1 = 否(false)
-            bool answered = (index == 0);
-            bool correct  = !_isBadBrain && (answered == _currentQ.correctAnswer);
+            // index -1 = 逾時（判錯），0 = 是，1 = 否
+            bool correct = index != -1 && !_isBadBrain && ((index == 0) == _currentQ.correctAnswer);
             _callback?.Invoke(correct);
         }
 
-        // ── UI 建構 ───────────────────────────────────────────────────────────
         private void BuildUI()
         {
             var canvasGo = new GameObject("BrainQACanvas",
@@ -170,7 +209,6 @@ namespace RunLight.UI
             _canvas = canvasGo.GetComponent<Canvas>();
             _canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
             _canvas.sortingOrder = 30;
-            var canvas = _canvas;
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
@@ -187,9 +225,8 @@ namespace RunLight.UI
             // 對話框
             var box = new GameObject("Box", typeof(Image));
             box.transform.SetParent(_panel.transform, false);
-            var boxImg = box.GetComponent<Image>();
-            boxImg.color = PanelBg;
-            boxImg.raycastTarget = false;
+            box.GetComponent<Image>().color = PanelBg;
+            box.GetComponent<Image>().raycastTarget = false;
             var boxRt = box.GetComponent<RectTransform>();
             boxRt.anchorMin = boxRt.anchorMax = boxRt.pivot = new Vector2(0.5f, 0.5f);
             boxRt.sizeDelta = new Vector2(960f, 520f);
@@ -216,18 +253,45 @@ namespace RunLight.UI
             // 題目文字
             _questionText = MakeTxt("Question", box.transform, "", 42, Color.white, FontStyle.Normal);
             var qRt = _questionText.rectTransform;
-            qRt.anchorMin = new Vector2(0f, 0.38f); qRt.anchorMax = new Vector2(1f, 0.88f);
+            qRt.anchorMin = new Vector2(0f, 0.48f); qRt.anchorMax = new Vector2(1f, 0.88f);
             qRt.offsetMin = new Vector2(60f, 0f);   qRt.offsetMax = new Vector2(-60f, 0f);
             _questionText.alignment          = TextAnchor.MiddleCenter;
             _questionText.horizontalOverflow = HorizontalWrapMode.Wrap;
             _questionText.verticalOverflow   = VerticalWrapMode.Overflow;
 
-            // ✓ / ✗ 兩個按鈕（左右各一）
-            float[]  xPos       = { -200f, 200f };
-            string[] btnNames   = { "BtnYes", "BtnNo" };
-            Color[]  btnColors  = {
-                new Color(0.10f, 0.45f, 0.15f, 0.92f),   // 綠
-                new Color(0.45f, 0.10f, 0.10f, 0.92f)    // 紅
+            // ── 計時區域（題目正下方）──
+            // 倒數秒數
+            _timerText = MakeTxt("TimerText", box.transform, "10", 24,
+                new Color(1f, 1f, 1f, 0.80f), FontStyle.Bold);
+            var ttRt = _timerText.rectTransform;
+            ttRt.anchorMin = new Vector2(0f, 0.38f); ttRt.anchorMax = new Vector2(1f, 0.46f);
+            ttRt.offsetMin = new Vector2(60f, 0f);   ttRt.offsetMax = new Vector2(-60f, 0f);
+            _timerText.alignment = TextAnchor.MiddleCenter;
+
+            // 計時條背景（細條，固定 6px 高）
+            var timerTrackGo = new GameObject("TimerTrack", typeof(Image));
+            timerTrackGo.transform.SetParent(box.transform, false);
+            timerTrackGo.GetComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+            var trackRt = timerTrackGo.GetComponent<RectTransform>();
+            trackRt.anchorMin = new Vector2(0f, 0.36f); trackRt.anchorMax = new Vector2(1f, 0.36f);
+            trackRt.pivot     = new Vector2(0.5f, 0.5f);
+            trackRt.anchoredPosition = Vector2.zero;
+            trackRt.sizeDelta = new Vector2(-120f, 6f);
+
+            var timerFillGo = new GameObject("TimerFill", typeof(Image));
+            timerFillGo.transform.SetParent(timerTrackGo.transform, false);
+            _timerFill = timerFillGo.GetComponent<Image>();
+            _timerFill.color = TimerFull;
+            var fillRt = _timerFill.rectTransform;
+            fillRt.anchorMin = Vector2.zero; fillRt.anchorMax = Vector2.one;
+            fillRt.offsetMin = fillRt.offsetMax = Vector2.zero;
+
+            // ✓ / ✗ 兩個按鈕
+            float[]  xPos      = { -200f, 200f };
+            string[] btnNames  = { "BtnYes", "BtnNo" };
+            Color[]  btnColors = {
+                new Color(0.10f, 0.45f, 0.15f, 0.92f),
+                new Color(0.45f, 0.10f, 0.10f, 0.92f)
             };
             Color[] hlColors = {
                 new Color(0.20f, 0.75f, 0.25f, 1.00f),

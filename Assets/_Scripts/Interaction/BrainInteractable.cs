@@ -17,6 +17,8 @@ namespace RunLight.Interaction
         public int gainAmount;
         [Tooltip("答錯損失的智力值")]
         public int loseAmount;
+        [Tooltip("限制作答時間（秒），0 = 使用預設 10 秒")]
+        public float timeLimit;
     }
 
     public class BrainInteractable : MonoBehaviour
@@ -52,6 +54,12 @@ namespace RunLight.Interaction
 
         private Transform _player;
         private bool      _used;
+
+        public void Init(BrainQuestion q, bool bad = false)
+        {
+            question   = q;
+            isBadBrain = bad;
+        }
 
         private void Awake()
         {

@@ -15,10 +15,14 @@ namespace RunLight.UI
         public static CaughtUI Instance { get; private set; }
 
         [Header("時間")]
-        [SerializeField] private float animationDelay = 2f;  // 動畫佔位時間，換上真實動畫後調整
-        [SerializeField] private float fadeToBlack    = 1.5f;
-        [SerializeField] private float textFadeIn     = 0.8f;
-        [SerializeField] private float resumeFade     = 0.8f;
+        [SerializeField] private float animationDelay    = 2f;   // 被抓小動畫佔位
+        [SerializeField] private float choiceAnimDelay   = 2f;   // 選B後被帶走動畫佔位（換真實動畫後調整）
+        [SerializeField] private float fadeToBlack       = 0.5f;
+        [SerializeField] private float textFadeIn        = 0.8f;
+        [SerializeField] private float resumeFade        = 0.8f;
+
+        [Header("選B動畫（選填，有素材時拖入）")]
+        [SerializeField] private UnityEngine.UI.RawImage choiceAnimImage;
 
         [Header("起始位置（選B時傳送）")]
         [SerializeField] public Transform startPoint;
@@ -66,8 +70,7 @@ namespace RunLight.UI
                 yield return new WaitForSeconds(animationDelay);
             }
 
-            yield return Fade(_overlay, 0f, 1f, fadeToBlack);
-
+            // 不淡黑，選項直接疊在畫面上
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
 
@@ -104,17 +107,6 @@ namespace RunLight.UI
 
         private void ChoiceB()  // 智力保留，回到起始房間；所有清道夫重置
         {
-            if (_fpc != null && startPoint != null)
-            {
-                var cc = _fpc.GetComponent<CharacterController>();
-                if (cc != null) cc.enabled = false;
-                _fpc.transform.position = startPoint.position;
-                if (cc != null) cc.enabled = true;
-            }
-            else if (_fpc != null && startPoint == null)
-            {
-                UnityEngine.Debug.LogWarning("[CaughtUI] Start Point 未設定，無法傳送");
-            }
             ResetAllSweepers();
             StartCoroutine(Resume(true));
         }
@@ -166,19 +158,45 @@ namespace RunLight.UI
             _fpc.ForceRotation(targetYaw, 0f);
         }
 
-        private IEnumerator Resume(bool teleported)
+        private IEnumerator Resume(bool teleport)
         {
             _choiceGroup.blocksRaycasts = false;
             yield return Fade(_choiceGroup, 1f, 0f, 0.3f);
             _choiceGroup.gameObject.SetActive(false);
 
-            yield return Fade(_overlay, 1f, 0f, resumeFade);
+            if (teleport)
+            {
+                // 播放動畫/GIF（有素材時 choiceAnimImage 顯示，否則只是等待）
+                if (choiceAnimImage != null) choiceAnimImage.gameObject.SetActive(true);
+                yield return new WaitForSeconds(choiceAnimDelay);
+                if (choiceAnimImage != null) choiceAnimImage.gameObject.SetActive(false);
+
+                // 淡黑傳送
+                yield return Fade(_overlay, 0f, 1f, fadeToBlack);
+
+                if (_fpc != null && startPoint != null)
+                {
+                    var cc = _fpc.GetComponent<CharacterController>();
+                    if (cc != null) cc.enabled = false;
+                    _fpc.transform.position = startPoint.position;
+                    if (cc != null) cc.enabled = true;
+                }
+                else if (_fpc != null && startPoint == null)
+                {
+                    UnityEngine.Debug.LogWarning("[CaughtUI] Start Point 未設定，無法傳送");
+                }
+
+                // 淡出
+                yield return Fade(_overlay, 1f, 0f, resumeFade);
+            }
+            else
+            {
+                yield return Fade(_overlay, _overlay.alpha, 0f, resumeFade);
+            }
 
             if (_fpc != null) _fpc.MovementLocked = false;
-
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible   = false;
-
             _active = false;
         }
 
