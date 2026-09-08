@@ -159,6 +159,8 @@ namespace RunLight.Player
 
         private void OnGUI()
         {
+            if (MovementLocked) return;
+
             if (Cursor.lockState != CursorLockMode.Locked)
             {
                 GUI.Label(new Rect(10, 10, 400, 30), "點擊畫面鎖定游標並開始移動");

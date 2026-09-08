@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using RunLight.Player;
 using RunLight.Core;
 using RunLight.Save;
@@ -140,6 +141,13 @@ namespace RunLight.UI
 
         private void BuildUI()
         {
+            if (FindObjectOfType<EventSystem>() == null)
+            {
+                var es = new GameObject("EventSystem");
+                es.AddComponent<EventSystem>();
+                es.AddComponent<StandaloneInputModule>();
+            }
+
             var canvasGo = new GameObject("PauseCanvas",
                 typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(transform, false);

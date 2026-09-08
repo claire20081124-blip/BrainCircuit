@@ -1,7 +1,10 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 using RunLight.Core;
+using RunLight.Save;
 using RunLight.Player;
 using RunLight.Enemy;
 
@@ -22,6 +25,7 @@ namespace RunLight.UI
 
         private CanvasGroup           _overlay;
         private CanvasGroup           _choiceGroup;
+        private CanvasGroup           _gameOverGroup;
         private bool                  _active;
         private FirstPersonController _fpc;
         private AISweeperController   _catcher;
@@ -38,7 +42,11 @@ namespace RunLight.UI
             if (Instance != null && !Instance._active)
             {
                 Instance._catcher = catcher;
-                Instance.StartCoroutine(Instance.CaughtSequence());
+                bool isGameOver = PlayerStats.Instance != null &&
+                                  PlayerStats.Instance.CurrentBrainPower <= 0;
+                Instance.StartCoroutine(isGameOver
+                    ? Instance.GameOverSequence()
+                    : Instance.CaughtSequence());
             }
         }
 
@@ -46,24 +54,39 @@ namespace RunLight.UI
         {
             _active = true;
 
-            // 停止玩家移動（存起來供後續使用）
             _fpc = FindObjectOfType<FirstPersonController>();
             if (_fpc != null) _fpc.MovementLocked = true;
 
-            // 動畫播放佔位（之後換成 Animator.Play + WaitUntil）
             yield return new WaitForSeconds(animationDelay);
 
-            // 慢慢變黑
             yield return Fade(_overlay, 0f, 1f, fadeToBlack);
 
-            // 解鎖游標讓玩家點選項
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
 
-            // 顯示選項
             _choiceGroup.gameObject.SetActive(true);
             _choiceGroup.blocksRaycasts = true;
             yield return Fade(_choiceGroup, 0f, 1f, textFadeIn);
+        }
+
+        private IEnumerator GameOverSequence()
+        {
+            _active = true;
+
+            _fpc = FindObjectOfType<FirstPersonController>();
+            if (_fpc != null) _fpc.MovementLocked = true;
+
+            // 小動畫佔位
+            yield return new WaitForSeconds(animationDelay);
+
+            yield return Fade(_overlay, 0f, 1f, fadeToBlack);
+
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible   = true;
+
+            _gameOverGroup.gameObject.SetActive(true);
+            _gameOverGroup.blocksRaycasts = true;
+            yield return Fade(_gameOverGroup, 0f, 1f, textFadeIn);
         }
 
         private void ChoiceA()  // 智力歸0，留在原地；清道夫重置
@@ -88,6 +111,24 @@ namespace RunLight.UI
                 UnityEngine.Debug.LogWarning("[CaughtUI] Start Point 未設定，無法傳送");
             }
             StartCoroutine(Resume(true));
+        }
+
+        private void LoadFromSave()
+        {
+            Time.timeScale = 1f;
+            if (GameManager.Instance != null)
+            {
+                int slot = GameManager.Instance.CurrentSlot;
+                var data = SaveSystem.PeekSummary(slot);
+                if (data != null)
+                {
+                    GameManager.Instance.LoadGame(slot);
+                    SceneManager.LoadScene(data.currentScene);
+                    return;
+                }
+            }
+            // 沒有存檔就重載當前場景
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         private IEnumerator Resume(bool teleported)
@@ -121,6 +162,14 @@ namespace RunLight.UI
 
         private void BuildUI()
         {
+            // 確保場景有 EventSystem，否則按鈕無法接收點擊
+            if (FindObjectOfType<EventSystem>() == null)
+            {
+                var es = new GameObject("EventSystem");
+                es.AddComponent<EventSystem>();
+                es.AddComponent<StandaloneInputModule>();
+            }
+
             var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             var canvasGo = new GameObject("CaughtCanvas",
@@ -178,6 +227,35 @@ namespace RunLight.UI
                 new Vector2(0.5f, 0.38f), new Vector2(210f, 0f),
                 new Color(0.1f, 0.3f, 0.6f, 0.9f),
                 ChoiceB);
+
+            // Game Over 面板
+            var goPanel = new GameObject("GameOverPanel");
+            goPanel.transform.SetParent(canvasGo.transform, false);
+            var goRt = goPanel.AddComponent<RectTransform>();
+            goRt.anchorMin = Vector2.zero; goRt.anchorMax = Vector2.one;
+            goRt.offsetMin = goRt.offsetMax = Vector2.zero;
+            _gameOverGroup = goPanel.AddComponent<CanvasGroup>();
+            _gameOverGroup.alpha = 0f;
+            _gameOverGroup.blocksRaycasts = false;
+            goPanel.SetActive(false);
+
+            MakeLabel(goPanel.transform, font, "意識消散",
+                72, new Color(0.9f, 0.2f, 0.2f), new Vector2(0.5f, 0.60f), new Vector2(800f, 90f));
+
+            MakeLabel(goPanel.transform, font, "你的自我已被系統完全覆寫",
+                26, new Color(1f, 1f, 1f, 0.6f), new Vector2(0.5f, 0.50f), new Vector2(700f, 40f));
+
+            MakeButton(goPanel.transform, font,
+                "重新開始", "",
+                new Vector2(0.5f, 0.35f), new Vector2(-180f, 0f),
+                new Color(0.4f, 0.15f, 0.15f, 0.9f),
+                LoadFromSave);
+
+            MakeButton(goPanel.transform, font,
+                "主選單", "",
+                new Vector2(0.5f, 0.35f), new Vector2(180f, 0f),
+                new Color(0.15f, 0.15f, 0.15f, 0.9f),
+                () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
         }
 
         private void MakeLabel(Transform parent, Font font, string text, int size,
