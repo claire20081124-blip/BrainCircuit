@@ -37,6 +37,8 @@ namespace RunLight.Enemy
             if (go != null) _player = go.transform;
         }
 
+        public bool IsChasing => _state == State.Chase;
+
         public void ResetToStart()
         {
             transform.position = _startPosition;

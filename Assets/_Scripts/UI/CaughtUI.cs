@@ -39,25 +39,32 @@ namespace RunLight.UI
 
         public static void TriggerCaught(AISweeperController catcher = null)
         {
-            if (Instance != null && !Instance._active)
-            {
-                Instance._catcher = catcher;
-                bool isGameOver = PlayerStats.Instance != null &&
-                                  PlayerStats.Instance.CurrentBrainPower <= 0;
-                Instance.StartCoroutine(isGameOver
-                    ? Instance.GameOverSequence()
-                    : Instance.CaughtSequence());
-            }
+            if (Instance == null || Instance._active) return;
+            Instance._active  = true;   // 同幀只處理一次，防止多個清道夫同時觸發
+            Instance._catcher = catcher;
+            bool isGameOver = PlayerStats.Instance != null &&
+                              PlayerStats.Instance.CurrentBrainPower <= 0;
+            Instance.StartCoroutine(isGameOver
+                ? Instance.GameOverSequence()
+                : Instance.CaughtSequence());
         }
 
         private IEnumerator CaughtSequence()
         {
-            _active = true;
-
             _fpc = FindObjectOfType<FirstPersonController>();
             if (_fpc != null) _fpc.MovementLocked = true;
 
-            yield return new WaitForSeconds(animationDelay);
+            // 鏡頭轉向清道夫
+            if (_fpc != null && _catcher != null)
+            {
+                float turnDur = Mathf.Min(animationDelay, 0.8f);
+                yield return TurnToFaceCatcher(turnDur);
+                yield return new WaitForSeconds(animationDelay - turnDur);
+            }
+            else
+            {
+                yield return new WaitForSeconds(animationDelay);
+            }
 
             yield return Fade(_overlay, 0f, 1f, fadeToBlack);
 
@@ -71,8 +78,6 @@ namespace RunLight.UI
 
         private IEnumerator GameOverSequence()
         {
-            _active = true;
-
             _fpc = FindObjectOfType<FirstPersonController>();
             if (_fpc != null) _fpc.MovementLocked = true;
 
@@ -89,15 +94,15 @@ namespace RunLight.UI
             yield return Fade(_gameOverGroup, 0f, 1f, textFadeIn);
         }
 
-        private void ChoiceA()  // 智力歸0，留在原地；清道夫重置
+        private void ChoiceA()  // 智力歸0，留在原地；所有清道夫重置
         {
             var stats = PlayerStats.Instance;
             if (stats != null) stats.TakeDamage(stats.MaxBrainPower);
-            _catcher?.ResetToStart();
+            ResetAllSweepers();
             StartCoroutine(Resume(false));
         }
 
-        private void ChoiceB()  // 智力保留，回到起始房間
+        private void ChoiceB()  // 智力保留，回到起始房間；所有清道夫重置
         {
             if (_fpc != null && startPoint != null)
             {
@@ -110,7 +115,14 @@ namespace RunLight.UI
             {
                 UnityEngine.Debug.LogWarning("[CaughtUI] Start Point 未設定，無法傳送");
             }
+            ResetAllSweepers();
             StartCoroutine(Resume(true));
+        }
+
+        private static void ResetAllSweepers()
+        {
+            foreach (var s in FindObjectsByType<AISweeperController>(FindObjectsSortMode.None))
+                s.ResetToStart();
         }
 
         private void LoadFromSave()
@@ -129,6 +141,29 @@ namespace RunLight.UI
             }
             // 沒有存檔就重載當前場景
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+
+        private IEnumerator TurnToFaceCatcher(float duration)
+        {
+            var dir = _catcher.transform.position - _fpc.transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.001f) yield break;
+
+            float targetYaw  = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
+            float startYaw   = _fpc.transform.eulerAngles.y;
+            float startPitch = _fpc.Pitch;
+
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float ratio = Mathf.SmoothStep(0f, 1f, t / duration);
+                _fpc.ForceRotation(
+                    Mathf.LerpAngle(startYaw,   targetYaw, ratio),
+                    Mathf.Lerp(startPitch, 0f, ratio));
+                yield return null;
+            }
+            _fpc.ForceRotation(targetYaw, 0f);
         }
 
         private IEnumerator Resume(bool teleported)

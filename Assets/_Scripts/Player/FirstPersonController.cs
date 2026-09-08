@@ -28,6 +28,7 @@ namespace RunLight.Player
         public float StaminaRatio   => _stamina / maxStamina;
         public bool  IsSprinting    { get; private set; }
         public bool  MovementLocked { get; set; }
+        public float Pitch          => _pitch;
 
         private CharacterController _cc;
         private Vector3 _verticalVelocity;
