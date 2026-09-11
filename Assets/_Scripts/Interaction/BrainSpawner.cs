@@ -6,7 +6,7 @@ namespace RunLight.Interaction
 {
     public class BrainSpawner : MonoBehaviour
     {
-        [Header("腦子 Prefab（從 Hierarchy 拖到 Project 建立）")]
+        [Header("腦子 Prefab（留空則用佔位球體）")]
         [SerializeField] private GameObject brainPrefab;
 
         [Header("題目池（隨機抽題）")]
@@ -19,76 +19,58 @@ namespace RunLight.Interaction
         [SerializeField] private Transform[] spawnPoints;
 
         [Header("數量與時間")]
-        [SerializeField] private int   maxActive     = 3;   // 同時存在的最大數量
-        [SerializeField] private float respawnDelay  = 20f; // 被拿走後幾秒重生
+        [SerializeField] private int   maxActive    = 3;
+        [SerializeField] private float respawnDelay = 20f;
 
-        private class Slot
-        {
-            public Transform  point;
-            public GameObject brain;
-            public bool       respawning;
-        }
-
-        private readonly List<Slot> _slots = new();
+        // 每個刷新點對應的當前腦子（null = 空閒）
+        private GameObject[] _brains;
 
         private void Start()
         {
-            if (brainPrefab == null)
-            {
-                Debug.LogWarning("[BrainSpawner] 未設定 Brain Prefab，停止運作");
-                return;
-            }
             if (spawnPoints == null || spawnPoints.Length == 0)
             {
-                Debug.LogWarning("[BrainSpawner] 未設定刷新點");
-                return;
+                Debug.LogWarning("[BrainSpawner] 未設定刷新點"); return;
             }
 
-            foreach (var p in spawnPoints)
-                _slots.Add(new Slot { point = p });
+            _brains = new GameObject[spawnPoints.Length];
 
-            // 初始生成（最多 maxActive 顆）
-            int count = 0;
-            foreach (var slot in _slots)
-            {
-                if (count >= maxActive) break;
-                SpawnAt(slot);
-                count++;
-            }
+            // 隨機挑 maxActive 個點初始生成
+            var freeIndices = GetFreeIndices();
+            Shuffle(freeIndices);
+            int count = Mathf.Min(maxActive, freeIndices.Count);
+            for (int i = 0; i < count; i++)
+                SpawnAt(freeIndices[i]);
         }
 
         private void Update()
         {
-            foreach (var slot in _slots)
+            if (_brains == null) return;
+
+            for (int i = 0; i < _brains.Length; i++)
             {
-                if (slot.brain == null && !slot.respawning)
-                    StartCoroutine(RespawnRoutine(slot));
+                // 腦子被拿走（Destroy）後 Unity 會把 reference 變成 fake-null
+                if (_brains[i] != null && !_brains[i]) _brains[i] = null;
             }
         }
 
-        private IEnumerator RespawnRoutine(Slot slot)
+        private IEnumerator RespawnRoutine()
         {
-            slot.respawning = true;
             yield return new WaitForSeconds(respawnDelay);
 
-            // 超過上限就等下一輪
-            int active = 0;
-            foreach (var s in _slots)
-                if (s.brain != null) active++;
+            // 數量未達上限才生成
+            if (CountActive() >= maxActive) yield break;
 
-            if (active < maxActive)
-                SpawnAt(slot);
-            else
-                slot.respawning = false;   // 下一幀 Update 會再觸發
+            var free = GetFreeIndices();
+            if (free.Count == 0) yield break;
+
+            SpawnAt(free[Random.Range(0, free.Count)]);
         }
 
-        private void SpawnAt(Slot slot)
+        private void SpawnAt(int index)
         {
             if (questionPool == null || questionPool.Length == 0)
             {
-                Debug.LogWarning("[BrainSpawner] 題目池是空的");
-                slot.respawning = false;
-                return;
+                Debug.LogWarning("[BrainSpawner] 題目池是空的"); return;
             }
 
             var q   = questionPool[Random.Range(0, questionPool.Length)];
@@ -97,31 +79,71 @@ namespace RunLight.Interaction
             GameObject go;
             if (brainPrefab != null)
             {
-                go = Instantiate(brainPrefab, slot.point.position, slot.point.rotation);
+                go = Instantiate(brainPrefab, spawnPoints[index].position, spawnPoints[index].rotation);
             }
             else
             {
-                // 沒有建模時用球體佔位，之後換 Prefab 即可
                 go = new GameObject("Brain_Placeholder");
-                go.transform.position = slot.point.position;
+                go.transform.position = spawnPoints[index].position;
+
                 var mesh = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 mesh.transform.SetParent(go.transform, false);
-                mesh.transform.localScale = Vector3.one * 0.3f;
-                // 淡粉紅讓佔位球好辨識
+                mesh.transform.localScale = Vector3.one * 1.5f;
                 var mr = mesh.GetComponent<MeshRenderer>();
                 if (mr != null)
                 {
-                    mr.material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                    mr.material.color = new Color(1f, 0.6f, 0.7f);
+                    var mat = new Material(mr.sharedMaterial);
+                    Color c = bad ? new Color(1f, 0.3f, 0.3f) : new Color(0.6f, 0.8f, 1f);
+                    mat.SetColor("_BaseColor", c);
+                    mat.SetColor("_Color",     c);   // 相容非 URP
+                    mr.material = mat;
                 }
+
                 go.AddComponent<BrainInteractable>();
             }
 
             var bi = go.GetComponent<BrainInteractable>();
             if (bi != null) bi.Init(q, bad);
 
-            slot.brain      = go;
-            slot.respawning = false;
+            _brains[index] = go;
+
+            // 腦子被拿走後啟動重生
+            StartCoroutine(WatchAndRespawn(index));
+        }
+
+        private IEnumerator WatchAndRespawn(int index)
+        {
+            // 等到該格腦子消失
+            while (_brains[index] != null && _brains[index])
+                yield return null;
+
+            _brains[index] = null;
+            yield return RespawnRoutine();
+        }
+
+        private int CountActive()
+        {
+            int n = 0;
+            foreach (var b in _brains)
+                if (b != null && b) n++;
+            return n;
+        }
+
+        private List<int> GetFreeIndices()
+        {
+            var list = new List<int>();
+            for (int i = 0; i < _brains.Length; i++)
+                if (_brains[i] == null || !_brains[i]) list.Add(i);
+            return list;
+        }
+
+        private static void Shuffle(List<int> list)
+        {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
         }
     }
 }

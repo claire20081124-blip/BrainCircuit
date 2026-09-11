@@ -23,8 +23,7 @@ namespace RunLight.Player
         [Tooltip("拖入 Player 底下的 Camera 物件")]
         [SerializeField] private Transform cameraTransform;
 
-        [Header("游標")]
-        [SerializeField] private KeyCode cursorToggleKey = KeyCode.Tab;
+        // Tab 游標切換已移至 BackpackUI
 
         public float StaminaRatio   => _stamina / maxStamina;
         public bool  IsSprinting    { get; private set; }
@@ -50,9 +49,6 @@ namespace RunLight.Player
 
         private void Update()
         {
-            if (Input.GetKeyDown(cursorToggleKey))
-                ToggleCursor();
-
             if (MovementLocked) return;
 
             Look();

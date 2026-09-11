@@ -20,14 +20,18 @@ namespace RunLight.Enemy
         [Header("2D Sprite（Billboard）")]
         [SerializeField] private SpriteRenderer spriteRenderer;
 
-        private enum State { Patrol, Chase, Return }
+        private enum State { Patrol, Chase, Return, Investigate }
         private State     _state = State.Patrol;
+        private Vector3    _investigatePos;
+        private GameObject _investigateItem;
+        private float      _observeTimer;
         private int       _waypointIndex;
         private Transform _player;
         private float     _lostTimer;
         private Vector3   _returnTarget;
         private Camera    _cam;
         private Vector3   _startPosition;
+        private float     _frozenTimer;
 
         private void Start()
         {
@@ -39,11 +43,12 @@ namespace RunLight.Enemy
 
         public bool IsChasing => _state == State.Chase;
 
-        public void ResetToStart()
+        public void ResetToStart(float freezeSeconds = 0f)
         {
             transform.position = _startPosition;
             _waypointIndex     = 0;
             _lostTimer         = 0f;
+            _frozenTimer       = freezeSeconds;
             _state             = State.Patrol;
         }
 
@@ -51,11 +56,18 @@ namespace RunLight.Enemy
         {
             BillboardSprite();
 
+            if (_frozenTimer > 0f)
+            {
+                _frozenTimer -= Time.deltaTime;
+                return;
+            }
+
             switch (_state)
             {
-                case State.Patrol: DoPatrol(); break;
-                case State.Chase:  DoChase();  break;
-                case State.Return: DoReturn(); break;
+                case State.Patrol:      DoPatrol();      break;
+                case State.Chase:       DoChase();       break;
+                case State.Return:      DoReturn();      break;
+                case State.Investigate: DoInvestigate(); break;
             }
         }
 
@@ -121,6 +133,37 @@ namespace RunLight.Enemy
 
             transform.position = Vector3.MoveTowards(
                 transform.position, _player.position, chaseSpeed * Time.deltaTime);
+        }
+
+        public void StartInvestigate(Vector3 pos, GameObject item)
+        {
+            _investigatePos  = pos;
+            _investigateItem = item;
+            _observeTimer    = 0f;
+            _state           = State.Investigate;
+        }
+
+        private void DoInvestigate()
+        {
+            float dist = Vector3.Distance(transform.position, _investigatePos);
+
+            if (dist > 0.5f)
+            {
+                // 還沒到，繼續走過去
+                transform.position = Vector3.MoveTowards(
+                    transform.position, _investigatePos, patrolSpeed * Time.deltaTime);
+            }
+            else
+            {
+                // 到了，開始觀察計時
+                _observeTimer += Time.deltaTime;
+                if (_observeTimer >= 3f)
+                {
+                    if (_investigateItem != null) Destroy(_investigateItem);
+                    _investigateItem = null;
+                    _state = State.Patrol;
+                }
+            }
         }
 
         private void DoReturn()

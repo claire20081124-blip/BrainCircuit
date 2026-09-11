@@ -13,6 +13,7 @@ namespace RunLight.UI
     public class CaughtUI : MonoBehaviour
     {
         public static CaughtUI Instance { get; private set; }
+        public bool IsActive => _active;
 
         [Header("時間")]
         [SerializeField] private float animationDelay    = 2f;   // 被抓小動畫佔位
@@ -97,11 +98,11 @@ namespace RunLight.UI
             yield return Fade(_gameOverGroup, 0f, 1f, textFadeIn);
         }
 
-        private void ChoiceA()  // 智力歸0，留在原地；所有清道夫重置
+        private void ChoiceA()  // 智力歸0，留在原地；所有清道夫凍結2秒讓玩家逃跑
         {
             var stats = PlayerStats.Instance;
             if (stats != null) stats.TakeDamage(stats.MaxBrainPower);
-            ResetAllSweepers();
+            ResetAllSweepers(freezeSeconds: 2f);
             StartCoroutine(Resume(false));
         }
 
@@ -111,10 +112,10 @@ namespace RunLight.UI
             StartCoroutine(Resume(true));
         }
 
-        private static void ResetAllSweepers()
+        private static void ResetAllSweepers(float freezeSeconds = 0f)
         {
             foreach (var s in FindObjectsByType<AISweeperController>(FindObjectsSortMode.None))
-                s.ResetToStart();
+                s.ResetToStart(freezeSeconds);
         }
 
         private void LoadFromSave()

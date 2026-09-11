@@ -34,7 +34,7 @@ namespace RunLight.Interaction
         [SerializeField] private GameObject brainModel;
 
         [Header("互動距離")]
-        [SerializeField] private float interactRange = 3f;
+        [SerializeField] private float interactRange = 8f;
 
         [Header("旋轉速度")]
         [SerializeField] private float spinSpeed = 60f;
