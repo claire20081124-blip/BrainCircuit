@@ -94,7 +94,7 @@ namespace RunLight.Interaction
 
             float dist = Vector3.Distance(center, _player.position);
             if (dist > interactRange) return;
-            if (!Input.GetKeyDown(KeyCode.Space)) return;
+            if (!Input.GetKeyDown(KeyCode.E)) return;
             if (BrainQAUI.IsOpen) return;
 
             // 投票：距離最近的腦子成為本幀候選

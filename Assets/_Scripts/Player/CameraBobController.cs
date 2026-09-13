@@ -31,7 +31,7 @@ namespace RunLight.Player
             float v = Input.GetAxisRaw("Vertical");
 
             bool sprinting = _fpc != null ? _fpc.IsSprinting
-                           : Keyboard.current != null && Keyboard.current.qKey.isPressed;
+                           : Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed;
 
             float speed  = sprinting ? sprintBobSpeed   : bobSpeed;
             float amount = sprinting ? sprintBobAmountY : bobAmountY;

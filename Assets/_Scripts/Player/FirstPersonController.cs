@@ -101,7 +101,7 @@ namespace RunLight.Player
             _verticalVelocity.y += Gravity * Time.deltaTime;
 
             bool moving     = Mathf.Abs(h) > 0.01f || Mathf.Abs(v) > 0.01f;
-            bool wantSprint = kb != null && kb.qKey.isPressed;
+            bool wantSprint = kb != null && kb.leftShiftKey.isPressed;
 
             // 體力消耗 / 回復
             if (wantSprint && moving && !_exhausted && _stamina > 0f)
