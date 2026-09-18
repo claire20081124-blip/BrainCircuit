@@ -29,6 +29,14 @@ namespace RunLight.Interaction
 
             var go = GameObject.FindWithTag("Player");
             if (go != null) _player = go.transform;
+
+            if (_player == null)
+            {
+                var fpc = FindObjectOfType<RunLight.Player.FirstPersonController>();
+                if (fpc != null) _player = fpc.transform;
+            }
+
+            if (_player == null) Debug.LogWarning("[Door] 找不到玩家！");
         }
 
         private void Update()
@@ -36,6 +44,7 @@ namespace RunLight.Interaction
             if (_player == null) return;
 
             float dist = Vector3.Distance(transform.position, _player.position);
+            Debug.Log($"[Door] dist={dist:F1} isOpen={_isOpen} E={Input.GetKeyDown(KeyCode.E)}");
 
             if (!_isOpen && Input.GetKeyDown(KeyCode.E) && dist <= interactRange)
                 Open();

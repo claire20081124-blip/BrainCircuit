@@ -14,6 +14,7 @@ namespace RunLight.Player
         [SerializeField] private float sprintBobAmountY = 0.9f;
 
         private Vector3 _restPos;
+        public  float   BobTimer { get; private set; }
         private float   _timer;
         private FirstPersonController _fpc;
 
@@ -38,7 +39,8 @@ namespace RunLight.Player
 
             if (Mathf.Abs(h) > 0.01f || Mathf.Abs(v) > 0.01f)
             {
-                _timer += Time.deltaTime * speed;
+                _timer    += Time.deltaTime * speed;
+                BobTimer   = _timer;
                 transform.localPosition = _restPos + new Vector3(0f, Mathf.Sin(_timer) * amount, 0f);
             }
             else

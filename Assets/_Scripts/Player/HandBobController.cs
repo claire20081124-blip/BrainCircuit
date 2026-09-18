@@ -33,7 +33,6 @@ namespace RunLight.Player
             if (moving)
             {
                 _timer += Time.deltaTime * bobSpeed;
-
                 float sin = Mathf.Sin(_timer);
                 float cos = Mathf.Cos(_timer);
 
@@ -47,7 +46,6 @@ namespace RunLight.Player
 
                 if (rightHand != null)
                 {
-                    // 右手與左手反相（sin + π）
                     rightHand.anchoredPosition = _rightRest + new Vector2(
                         -cos * bobAmountX,
                         -sin * bobAmountY);
