@@ -44,10 +44,12 @@ namespace RunLight.Interaction
             if (_player == null) return;
 
             float dist = Vector3.Distance(transform.position, _player.position);
-            Debug.Log($"[Door] dist={dist:F1} isOpen={_isOpen} E={Input.GetKeyDown(KeyCode.E)}");
 
-            if (!_isOpen && Input.GetKeyDown(KeyCode.E) && dist <= interactRange)
-                Open();
+            if (Input.GetKeyDown(KeyCode.E) && dist <= interactRange)
+            {
+                if (_isOpen) Close();
+                else Open();
+            }
 
             // 平滑旋轉
             transform.localRotation = Quaternion.Slerp(
@@ -66,6 +68,11 @@ namespace RunLight.Interaction
                 if (GameManager.HasInstance)
                     GameManager.Instance.SaveGame();
             }
+        }
+
+        private void Close()
+        {
+            _isOpen = false;
         }
 
         private void OnDrawGizmosSelected()

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using RunLight.Player;
 using RunLight.Inventory;
 
@@ -30,6 +31,23 @@ namespace RunLight.UI
         private Vector2               _lastMouse;
         private float                 _inspectYaw;
         private float                 _inspectPitch;
+        // 快捷格
+        private InventoryItem   _quickItem;
+        private Image           _quickIconImg;
+        private Text            _quickNameTxt;
+        private RectTransform   _quickSlotRt;
+        private GameObject      _quickSlotGo;
+        // 拖曳
+        private InventoryItem   _dragItem;
+        private RectTransform   _dragVisualRt;
+        private Image           _dragVisualImg;
+        private bool            _isDragging2;
+        private Vector2         _dragPointerStart;
+        private const float     DragThreshold = 12f;
+        private const KeyCode   QuickKey      = KeyCode.Q;
+        // HUD
+        private Text            _hudQuickTxt;
+        private Canvas          _rootCanvas;
         private FirstPersonController _fpc;
         private Font                  _font;
 
@@ -73,6 +91,27 @@ namespace RunLight.UI
                     CloseInspect();
                 else
                     Close();
+            }
+
+            // Q 快捷丟出（背包關閉時）
+            if (!IsOpen && Input.GetKeyDown(QuickKey) && _quickItem != null)
+            {
+                if (InventorySystem.Instance != null && InventorySystem.Instance.Has(_quickItem.id))
+                    Player.ThrowSystem.Instance?.StartAiming(_quickItem);
+                else
+                    SetQuickItem(null);
+            }
+
+            // 拖曳道具視覺
+            if (_isDragging2 && _dragVisualRt != null)
+            {
+                RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                    _rootCanvas.GetComponent<RectTransform>(),
+                    Input.mousePosition, null, out var lp);
+                _dragVisualRt.anchoredPosition = lp;
+
+                if (Input.GetMouseButtonUp(0))
+                    EndItemDrag();
             }
 
             // 3D 查看旋轉（拖曳左鍵）
@@ -121,20 +160,31 @@ namespace RunLight.UI
 
         private void RefreshGrid()
         {
+            // 快捷格道具被丟出後清空
+            if (_quickItem != null &&
+                InventorySystem.Instance != null &&
+                !InventorySystem.Instance.Has(_quickItem.id))
+                SetQuickItem(null);
+
             if (_grid == null) return;
 
-            // 清空舊格子
+            // 清空舊格子（保留快捷格）
             foreach (Transform child in _grid)
-                Destroy(child.gameObject);
+                if (child.gameObject != _quickSlotGo)
+                    Destroy(child.gameObject);
 
             var items = InventorySystem.Instance?.Items;
-            int totalSlots = columns * 3;   // 4×3 = 12 格
+            int totalSlots = columns * 3 - 1;   // 12 格 - 1 快捷格 = 11 格
 
             for (int i = 0; i < totalSlots; i++)
             {
                 var item = (items != null && i < items.Count) ? items[i] : null;
                 CreateSlot(i, item);
             }
+
+            // 快捷格永遠在第一格
+            if (_quickSlotGo != null)
+                _quickSlotGo.transform.SetSiblingIndex(0);
         }
 
         private void CreateSlot(int index, InventoryItem item)
@@ -172,9 +222,30 @@ namespace RunLight.UI
                 lrt.anchorMin = new Vector2(0f, 0f); lrt.anchorMax = new Vector2(1f, 0.32f);
                 lrt.offsetMin = lrt.offsetMax = Vector2.zero;
 
-                // 點擊顯示詳情
+                // 點擊顯示詳情 / 長拖指定快捷格
                 var captured = item;
                 slotGo.GetComponent<Button>().onClick.AddListener(() => ShowDetail(captured));
+
+                var et = slotGo.AddComponent<EventTrigger>();
+                AddEventTrigger(et, EventTriggerType.PointerDown, _ =>
+                {
+                    _dragItem         = captured;
+                    _dragPointerStart = Input.mousePosition;
+                    _isDragging2      = false;
+                });
+                AddEventTrigger(et, EventTriggerType.Drag, _ =>
+                {
+                    if (!_isDragging2 &&
+                        Vector2.Distance(Input.mousePosition, _dragPointerStart) > DragThreshold)
+                    {
+                        _isDragging2 = true;
+                        if (_dragVisualImg != null)
+                        {
+                            _dragVisualImg.color  = captured.placeholderColor;
+                            _dragVisualRt.gameObject.SetActive(true);
+                        }
+                    }
+                });
             }
         }
 
@@ -259,6 +330,7 @@ namespace RunLight.UI
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 20;
+            _rootCanvas = canvas;
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
@@ -302,6 +374,15 @@ namespace RunLight.UI
             float gridH = 3f    * (slotSize + slotPadding);
             grt.sizeDelta = new Vector2(gridW, gridH);
             _grid = gridGo.transform;
+
+            // 快捷格（加進格子容器，當第 13 格）
+            BuildQuickSlot(bgGo.transform);
+
+            // 拖曳視覺（Canvas 最上層）
+            BuildDragVisual(canvasGo.transform);
+
+            // HUD 快捷提示
+            BuildQuickHUD(canvasGo.transform);
 
             // 3D 查看用 Camera + RT
             CreateInspectCamera();
@@ -457,6 +538,124 @@ namespace RunLight.UI
             _inspectName.horizontalOverflow = HorizontalWrapMode.Wrap;
 
             _inspectPanel.SetActive(false);
+        }
+
+        private void BuildQuickSlot(Transform parent)
+        {
+            // 直接掛在 Grid 下，跟一般格子並列
+            var slot = new GameObject("QuickSlot", typeof(Image), typeof(LayoutElement));
+            slot.transform.SetParent(_grid, false);
+            _quickSlotGo = slot;
+
+            // 金色背景
+            slot.GetComponent<Image>().color = new Color(0.45f, 0.35f, 0.05f, 0.85f);
+            _quickSlotRt = slot.GetComponent<RectTransform>();
+            _quickSlotRt.sizeDelta = new Vector2(slotSize, slotSize);
+
+            // [Q] 標籤（左上角）
+            var lbl = MakeTxt("QLbl", slot.transform, "[Q]", 16,
+                new Color(1f, 0.85f, 0.3f, 1f), FontStyle.Bold);
+            lbl.rectTransform.anchorMin = new Vector2(0f, 0.68f);
+            lbl.rectTransform.anchorMax = Vector2.one;
+            lbl.rectTransform.offsetMin = new Vector2(6f, 0f);
+            lbl.rectTransform.offsetMax = Vector2.zero;
+            lbl.alignment = TextAnchor.UpperLeft;
+
+            // 道具圖示
+            var iconGo = new GameObject("Icon", typeof(Image));
+            iconGo.transform.SetParent(slot.transform, false);
+            _quickIconImg = iconGo.GetComponent<Image>();
+            _quickIconImg.color = Color.clear;
+            var irt = iconGo.GetComponent<RectTransform>();
+            irt.anchorMin = new Vector2(0.08f, 0.28f);
+            irt.anchorMax = new Vector2(0.92f, 0.92f);
+            irt.offsetMin = irt.offsetMax = Vector2.zero;
+
+            // 名稱（下方）
+            _quickNameTxt = MakeTxt("Name", slot.transform, "拖放到這", 13,
+                new Color(1f, 1f, 1f, 0.55f), FontStyle.Normal);
+            var nrt = _quickNameTxt.rectTransform;
+            nrt.anchorMin = new Vector2(0f, 0f);
+            nrt.anchorMax = new Vector2(1f, 0.3f);
+            nrt.offsetMin = nrt.offsetMax = Vector2.zero;
+            _quickNameTxt.alignment = TextAnchor.MiddleCenter;
+            _quickNameTxt.horizontalOverflow = HorizontalWrapMode.Wrap;
+
+            // 拖放接收
+            var et = slot.AddComponent<EventTrigger>();
+            AddEventTrigger(et, EventTriggerType.PointerUp, _ => { if (_isDragging2) EndItemDrag(); });
+        }
+
+        private void BuildDragVisual(Transform canvasRoot)
+        {
+            var go = new GameObject("DragVisual", typeof(Image));
+            go.transform.SetParent(canvasRoot, false);
+            _dragVisualImg = go.GetComponent<Image>();
+            _dragVisualImg.raycastTarget = false;
+            _dragVisualRt = go.GetComponent<RectTransform>();
+            _dragVisualRt.sizeDelta = new Vector2(80f, 80f);
+            _dragVisualRt.anchorMin = _dragVisualRt.anchorMax = new Vector2(0f, 1f);
+            go.SetActive(false);
+        }
+
+        private void BuildQuickHUD(Transform canvasRoot)
+        {
+            var go = new GameObject("QuickHUD", typeof(Text));
+            go.transform.SetParent(canvasRoot, false);
+            _hudQuickTxt = go.GetComponent<Text>();
+            _hudQuickTxt.font      = _font;
+            _hudQuickTxt.fontSize  = 20;
+            _hudQuickTxt.color     = new Color(1f, 0.85f, 0.3f, 0.85f);
+            _hudQuickTxt.fontStyle = FontStyle.Bold;
+            _hudQuickTxt.raycastTarget = false;
+            _hudQuickTxt.alignment = TextAnchor.LowerLeft;
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero; rt.anchorMax = new Vector2(0.4f, 0.12f);
+            rt.offsetMin = new Vector2(20f, 20f); rt.offsetMax = Vector2.zero;
+            UpdateQuickHUD();
+        }
+
+        private void EndItemDrag()
+        {
+            if (_isDragging2 && _dragItem != null)
+            {
+                // 檢查滑鼠是否在快捷格上
+                if (_quickSlotRt != null &&
+                    RectTransformUtility.RectangleContainsScreenPoint(
+                        _quickSlotRt, Input.mousePosition, null))
+                {
+                    SetQuickItem(_dragItem);
+                }
+            }
+            _isDragging2 = false;
+            _dragItem    = null;
+            if (_dragVisualRt != null) _dragVisualRt.gameObject.SetActive(false);
+        }
+
+        private void SetQuickItem(InventoryItem item)
+        {
+            _quickItem = item;
+            if (_quickIconImg != null)
+                _quickIconImg.color = item != null ? item.placeholderColor : Color.clear;
+            if (_quickNameTxt != null)
+                _quickNameTxt.text = item != null ? item.displayName : "（空）";
+            UpdateQuickHUD();
+        }
+
+        private void UpdateQuickHUD()
+        {
+            if (_hudQuickTxt == null) return;
+            _hudQuickTxt.text = _quickItem != null
+                ? $"[Q] 丟出：{_quickItem.displayName}"
+                : "";
+        }
+
+        private static void AddEventTrigger(EventTrigger et, EventTriggerType type,
+            UnityEngine.Events.UnityAction<BaseEventData> action)
+        {
+            var entry = new EventTrigger.Entry { eventID = type };
+            entry.callback.AddListener(action);
+            et.triggers.Add(entry);
         }
 
         private static void SetLayerRecursive(GameObject go, int layer)
