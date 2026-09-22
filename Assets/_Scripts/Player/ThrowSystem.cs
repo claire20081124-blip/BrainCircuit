@@ -62,27 +62,45 @@ namespace RunLight.Player
 
             InventorySystem.Instance?.Remove(_pendingItem.id);
 
-            // 建立拋出物
-            var go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.transform.position   = cameraTransform.position + cameraTransform.forward * 1.2f;
-            go.transform.localScale = Vector3.one * 0.4f;
-
-            var mr = go.GetComponent<MeshRenderer>();
-            if (mr != null)
+            // 建立拋出物：有模型用模型，否則用球
+            GameObject go;
+            if (_pendingItem.inspectPrefab != null)
             {
-                var mat = new Material(mr.sharedMaterial);
-                mat.SetColor("_BaseColor", new Color(0.9f, 0.8f, 0.3f));
-                mat.SetColor("_Color",     new Color(0.9f, 0.8f, 0.3f));
-                mr.material = mat;
+                go = Instantiate(_pendingItem.inspectPrefab);
+                go.transform.position = cameraTransform.position + cameraTransform.forward * 1.2f + Vector3.up * 0.15f;
+                // 確保在正常 layer（inspect 用 layer 31，丟出要用 Default）
+                SetLayerRecursive(go, 0);
+                // MeshCollider 非 Convex 跟 Rigidbody 不相容，強制改成 Convex
+                foreach (var mc in go.GetComponentsInChildren<MeshCollider>())
+                    mc.convex = true;
+                // 如果完全沒 Collider 就加一個
+                if (go.GetComponentInChildren<Collider>() == null)
+                    go.AddComponent<BoxCollider>();
+            }
+            else
+            {
+                go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                go.transform.position   = cameraTransform.position + cameraTransform.forward * 1.2f;
+                go.transform.localScale = Vector3.one * 0.4f;
+                var mr = go.GetComponent<MeshRenderer>();
+                if (mr != null)
+                {
+                    var mat = new Material(mr.sharedMaterial);
+                    mat.SetColor("_BaseColor", new Color(0.9f, 0.8f, 0.3f));
+                    mat.SetColor("_Color",     new Color(0.9f, 0.8f, 0.3f));
+                    mr.material = mat;
+                }
             }
 
             // 忽略和玩家碰撞體的碰撞
             var playerCol = GetComponent<Collider>() ?? GetComponentInChildren<Collider>();
-            var throwCol  = go.GetComponent<Collider>();
-            if (playerCol != null && throwCol != null)
-                Physics.IgnoreCollision(throwCol, playerCol);
+            foreach (var col in go.GetComponentsInChildren<Collider>())
+                if (playerCol != null) Physics.IgnoreCollision(col, playerCol);
 
             var rb = go.AddComponent<Rigidbody>();
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.linearDamping  = 0.3f;
+            rb.angularDamping = 0.5f;
             var dir = (cameraTransform.forward + Vector3.up * throwArc).normalized;
             rb.linearVelocity = dir * throwForce;
 
@@ -90,6 +108,13 @@ namespace RunLight.Player
             thrown.sourceItem = _pendingItem;
 
             CancelAim();
+        }
+
+        private static void SetLayerRecursive(GameObject go, int layer)
+        {
+            go.layer = layer;
+            foreach (Transform child in go.transform)
+                SetLayerRecursive(child.gameObject, layer);
         }
 
         private void CancelAim()

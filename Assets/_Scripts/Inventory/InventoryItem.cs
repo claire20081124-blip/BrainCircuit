@@ -11,9 +11,10 @@ namespace RunLight.Inventory
         public string   displayName;
         public string   description;
         public ItemType type;
-        public Sprite     icon;              // 背包格子小圖示
-        public Sprite     inspectSprite;   // 備用 2D 圖（目前未使用）
+        public Sprite     icon;
+        public Sprite     inspectSprite;
         public GameObject inspectPrefab;   // 查看時顯示的 3D 模型（null → 色塊球）
+        public string     noteText;        // 非空時查看顯示紙條文字（而非 3D 模型）
         public Color      placeholderColor = Color.white;
     }
 }

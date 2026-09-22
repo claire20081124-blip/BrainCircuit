@@ -27,6 +27,8 @@ namespace RunLight.UI
         private RenderTexture         _inspectRT;
         private Transform             _inspectRoot;
         private GameObject            _inspectModel;
+        private GameObject            _inspectNoteView;
+        private Text                  _inspectNoteTxt;
         private bool                  _isDragging;
         private Vector2               _lastMouse;
         private float                 _inspectYaw;
@@ -271,39 +273,52 @@ namespace RunLight.UI
         {
             if (_selectedItem == null || _inspectPanel == null) return;
 
-            // 清掉上一個模型
             if (_inspectModel != null) { Destroy(_inspectModel); _inspectModel = null; }
             _inspectYaw = 0f; _inspectPitch = 0f; _isDragging = false;
 
-            if (_selectedItem.inspectPrefab != null)
+            bool isNote = !string.IsNullOrEmpty(_selectedItem.noteText);
+
+            if (isNote)
             {
-                _inspectModel = Instantiate(_selectedItem.inspectPrefab, _inspectRoot);
+                // 紙條模式：顯示文字，隱藏 3D
+                _inspectNoteTxt.text = _selectedItem.noteText;
+                _inspectNoteView.SetActive(true);
+                if (_inspectRaw != null) _inspectRaw.gameObject.SetActive(false);
+                if (_inspectCam != null) _inspectCam.enabled = false;
             }
             else
             {
-                // 色塊球 placeholder
-                _inspectModel = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                _inspectModel.transform.SetParent(_inspectRoot, false);
-                var col = _inspectModel.GetComponent<Collider>();
-                if (col != null) Destroy(col);
-                var mr = _inspectModel.GetComponent<MeshRenderer>();
-                if (mr != null)
+                // 3D 模式
+                _inspectNoteView.SetActive(false);
+                if (_inspectRaw != null) _inspectRaw.gameObject.SetActive(true);
+
+                if (_selectedItem.inspectPrefab != null)
                 {
-                    var mat = new Material(mr.sharedMaterial);
-                    mat.SetColor("_BaseColor", _selectedItem.placeholderColor);
-                    mat.SetColor("_Color",     _selectedItem.placeholderColor);
-                    mr.material = mat;
+                    _inspectModel = Instantiate(_selectedItem.inspectPrefab, _inspectRoot);
                 }
+                else
+                {
+                    _inspectModel = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    _inspectModel.transform.SetParent(_inspectRoot, false);
+                    var col = _inspectModel.GetComponent<Collider>();
+                    if (col != null) Destroy(col);
+                    var mr = _inspectModel.GetComponent<MeshRenderer>();
+                    if (mr != null)
+                    {
+                        var mat = new Material(mr.sharedMaterial);
+                        mat.SetColor("_BaseColor", _selectedItem.placeholderColor);
+                        mat.SetColor("_Color",     _selectedItem.placeholderColor);
+                        mr.material = mat;
+                    }
+                }
+
+                _inspectModel.transform.localPosition = Vector3.zero;
+                _inspectModel.transform.localRotation = Quaternion.identity;
+                _inspectModel.transform.localScale    = Vector3.one;
+                SetLayerRecursive(_inspectModel, 31);
+                if (_inspectCam != null) _inspectCam.enabled = true;
             }
 
-            _inspectModel.transform.localPosition = Vector3.zero;
-            _inspectModel.transform.localRotation = Quaternion.identity;
-            _inspectModel.transform.localScale    = Vector3.one;
-
-            // layer 31 so only the inspect camera sees it
-            SetLayerRecursive(_inspectModel, 31);
-
-            if (_inspectCam != null) _inspectCam.enabled = true;
             _inspectName.text = _selectedItem.displayName;
             _inspectPanel.SetActive(true);
         }
@@ -311,7 +326,9 @@ namespace RunLight.UI
         private void CloseInspect()
         {
             if (_inspectModel != null) { Destroy(_inspectModel); _inspectModel = null; }
-            if (_inspectCam  != null) _inspectCam.enabled = false;
+            if (_inspectCam   != null) _inspectCam.enabled = false;
+            if (_inspectNoteView != null) _inspectNoteView.SetActive(false);
+            if (_inspectRaw   != null) _inspectRaw.gameObject.SetActive(true);
             if (_inspectPanel != null) _inspectPanel.SetActive(false);
             _isDragging = false;
         }
@@ -519,7 +536,7 @@ namespace RunLight.UI
             hrt.offsetMin = new Vector2(20f, 10f); hrt.offsetMax = Vector2.zero;
             hint.alignment = TextAnchor.LowerLeft;
 
-            // RenderTexture 顯示區（中央）
+            // RenderTexture 顯示區（中央，鎖定 1:1 比例）
             var rawGo = new GameObject("InspectRaw", typeof(RawImage));
             rawGo.transform.SetParent(_inspectPanel.transform, false);
             _inspectRaw = rawGo.GetComponent<RawImage>();
@@ -527,6 +544,9 @@ namespace RunLight.UI
             var irt = rawGo.GetComponent<RectTransform>();
             irt.anchorMin = new Vector2(0.15f, 0.16f); irt.anchorMax = new Vector2(0.85f, 0.88f);
             irt.offsetMin = irt.offsetMax = Vector2.zero;
+            var arf = rawGo.AddComponent<AspectRatioFitter>();
+            arf.aspectMode  = AspectRatioFitter.AspectMode.FitInParent;
+            arf.aspectRatio = 1f;
 
             // 名稱（圖下方）
             _inspectName = MakeTxt("InspectName", _inspectPanel.transform, "", 30,
@@ -537,6 +557,24 @@ namespace RunLight.UI
             _inspectName.alignment = TextAnchor.MiddleCenter;
             _inspectName.horizontalOverflow = HorizontalWrapMode.Wrap;
 
+            // 紙條顯示層（道具有 noteText 時顯示，其他時候隱藏）
+            _inspectNoteView = new GameObject("NoteView", typeof(Image));
+            _inspectNoteView.transform.SetParent(_inspectPanel.transform, false);
+            _inspectNoteView.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+            var nvrt = _inspectNoteView.GetComponent<RectTransform>();
+            nvrt.anchorMin = new Vector2(0.20f, 0.16f); nvrt.anchorMax = new Vector2(0.80f, 0.88f);
+            nvrt.offsetMin = nvrt.offsetMax = Vector2.zero;
+
+            _inspectNoteTxt = MakeTxt("NoteTxt", _inspectNoteView.transform, "", 48,
+                new Color(0.90f, 0.88f, 0.82f, 1f), FontStyle.Normal);
+            var ntrt = _inspectNoteTxt.rectTransform;
+            ntrt.anchorMin = new Vector2(0.06f, 0.08f); ntrt.anchorMax = new Vector2(0.94f, 0.92f);
+            ntrt.offsetMin = ntrt.offsetMax = Vector2.zero;
+            _inspectNoteTxt.alignment          = TextAnchor.MiddleCenter;
+            _inspectNoteTxt.horizontalOverflow  = HorizontalWrapMode.Wrap;
+            _inspectNoteTxt.verticalOverflow    = VerticalWrapMode.Overflow;
+
+            _inspectNoteView.SetActive(false);
             _inspectPanel.SetActive(false);
         }
 
@@ -636,7 +674,24 @@ namespace RunLight.UI
         {
             _quickItem = item;
             if (_quickIconImg != null)
-                _quickIconImg.color = item != null ? item.placeholderColor : Color.clear;
+            {
+                if (item == null)
+                {
+                    _quickIconImg.sprite = null;
+                    _quickIconImg.color  = Color.clear;
+                }
+                else if (item.icon != null)
+                {
+                    _quickIconImg.sprite          = item.icon;
+                    _quickIconImg.color           = Color.white;
+                    _quickIconImg.preserveAspect  = true;
+                }
+                else
+                {
+                    _quickIconImg.sprite = null;
+                    _quickIconImg.color  = item.placeholderColor;
+                }
+            }
             if (_quickNameTxt != null)
                 _quickNameTxt.text = item != null ? item.displayName : "（空）";
             UpdateQuickHUD();

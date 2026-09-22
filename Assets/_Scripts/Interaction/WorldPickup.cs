@@ -7,11 +7,15 @@ namespace RunLight.Interaction
     public class WorldPickup : MonoBehaviour
     {
         [Header("道具資訊")]
-        [SerializeField] private string    itemId          = "item_001";
-        [SerializeField] private string    displayName     = "道具";
-        [SerializeField] private string    description     = "說明文字";
-        [SerializeField] private ItemType  itemType        = ItemType.Other;
-        [SerializeField] private Color     placeholderColor = Color.cyan;
+        [SerializeField] private string     itemId           = "item_001";
+        [SerializeField] private string     displayName      = "道具";
+        [SerializeField] private string     description      = "說明文字";
+        [SerializeField] private ItemType   itemType         = ItemType.Other;
+        [SerializeField] private Color      placeholderColor = Color.cyan;
+        [SerializeField] private Sprite     icon;
+        [SerializeField] private GameObject inspectPrefab;
+        [TextArea(2, 6)]
+        [SerializeField] private string     noteText;
 
         [Header("互動")]
         [SerializeField] private float interactRange = 3f;
@@ -37,16 +41,20 @@ namespace RunLight.Interaction
 
             if (Vector3.Distance(transform.position, _player.position) <= interactRange
                 && Input.GetKeyDown(KeyCode.E))
-            {
-                Pickup();
-            }
+                DoPickup();
         }
 
-        private void Pickup()
+        public bool   CanPickup   => !_pickedUp;
+        public string DisplayName => displayName;
+
+        public void DoPickup()
         {
+            if (_pickedUp) return;
             _pickedUp = true;
             StartCoroutine(PickupRoutine());
         }
+
+        private void Pickup() => DoPickup();
 
         private IEnumerator PickupRoutine()
         {
@@ -68,7 +76,10 @@ namespace RunLight.Interaction
                 displayName      = displayName,
                 description      = description,
                 type             = itemType,
-                placeholderColor = placeholderColor
+                placeholderColor = placeholderColor,
+                icon             = icon,
+                inspectPrefab    = inspectPrefab,
+                noteText         = noteText
             };
 
             InventorySystem.Instance?.Add(item);

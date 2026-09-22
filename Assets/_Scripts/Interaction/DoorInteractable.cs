@@ -16,6 +16,9 @@ namespace RunLight.Interaction
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
+        [Header("門口擋牆（開門時關閉）")]
+        [SerializeField] private Collider doorBlocker;
+
         private Quaternion _closedRot;
         private Quaternion _openRot;
         private bool       _isOpen;
@@ -61,6 +64,7 @@ namespace RunLight.Interaction
         private void Open()
         {
             _isOpen = true;
+            if (doorBlocker != null) doorBlocker.enabled = false;
 
             if (!_saved)
             {
@@ -73,6 +77,7 @@ namespace RunLight.Interaction
         private void Close()
         {
             _isOpen = false;
+            if (doorBlocker != null) doorBlocker.enabled = true;
         }
 
         private void OnDrawGizmosSelected()
