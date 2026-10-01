@@ -87,20 +87,5 @@ namespace RunLight.Interaction
             if (rb != null) { rb.linearVelocity = Vector3.zero; rb.isKinematic = true; }
         }
 
-        private void OnGUI()
-        {
-            if (!_notified || _player == null) return;
-            if (Vector3.Distance(transform.position, _player.position) > pickupRange) return;
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize  = 20, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal    = { textColor = Color.white }
-            };
-            string name = sourceItem != null ? sourceItem.displayName : "道具";
-            GUI.Label(new Rect((Screen.width - 300f) * 0.5f, Screen.height * 0.68f, 300f, 32f),
-                $"按 E 撿回 [{name}]", style);
-        }
     }
 }

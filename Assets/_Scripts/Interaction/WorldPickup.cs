@@ -86,23 +86,6 @@ namespace RunLight.Interaction
             Destroy(gameObject);
         }
 
-        private void OnGUI()
-        {
-            if (_pickedUp || _player == null) return;
-            if (Vector3.Distance(transform.position, _player.position) > interactRange) return;
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize  = 20,
-                fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal    = { textColor = Color.white }
-            };
-            float w = 300f, h = 32f;
-            GUI.Label(new Rect((Screen.width - w) * 0.5f, Screen.height * 0.68f, w, h),
-                $"按 E 撿起 [{displayName}]", style);
-        }
-
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.cyan;

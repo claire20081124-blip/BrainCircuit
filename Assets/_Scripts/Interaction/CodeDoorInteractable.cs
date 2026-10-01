@@ -18,15 +18,21 @@ namespace RunLight.Interaction
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
+        [Header("音效")]
+        [SerializeField] private AudioClip openSound;
+        [SerializeField] private AudioClip closeSound;
+        [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
+
         [Header("門口擋牆（開門時關閉）")]
         [SerializeField] private Collider doorBlocker;
 
-        private Quaternion _closedRot;
-        private Quaternion _openRot;
-        private bool       _isOpen;
-        private bool       _unlocked;
-        private bool       _saved;
-        private Transform  _player;
+        private Quaternion  _closedRot;
+        private Quaternion  _openRot;
+        private bool        _isOpen;
+        private bool        _unlocked;
+        private bool        _saved;
+        private Transform   _player;
+        private AudioSource _audio;
         private RunLight.Player.FirstPersonController _fpc;
 
         // UI
@@ -49,6 +55,11 @@ namespace RunLight.Interaction
                 _fpc = FindObjectOfType<RunLight.Player.FirstPersonController>();
                 if (_fpc != null) _player = _fpc.transform;
             }
+
+            _audio = gameObject.AddComponent<AudioSource>();
+            _audio.spatialBlend = 0f;
+            _audio.playOnAwake  = false;
+            _audio.volume       = soundVolume;
 
             BuildUI();
         }
@@ -141,6 +152,13 @@ namespace RunLight.Interaction
         {
             _isOpen = true;
             if (doorBlocker != null) doorBlocker.enabled = false;
+            if (openSound != null)
+            {
+                _audio.clip = openSound;
+                _audio.Play();
+                Debug.Log($"[CodeDoor] Play() called | clip={openSound.name} len={openSound.length:F2}s | vol={_audio.volume} | mute={_audio.mute} | isPlaying={_audio.isPlaying}");
+            }
+            else Debug.LogWarning("[CodeDoor] openSound 是空的！");
             if (!_saved)
             {
                 _saved = true;
@@ -152,6 +170,7 @@ namespace RunLight.Interaction
         {
             _isOpen = false;
             if (doorBlocker != null) doorBlocker.enabled = true;
+            if (closeSound != null) { _audio.clip = closeSound; _audio.Play(); }
         }
 
         // ── UI 開關 ───────────────────────────────────────────

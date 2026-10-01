@@ -13,17 +13,23 @@ namespace RunLight.Interaction
         [SerializeField] private float openAngle = 90f;
         [SerializeField] private float openSpeed = 4f;
 
+        [Header("音效")]
+        [SerializeField] private AudioClip openSound;
+        [SerializeField] private AudioClip closeSound;
+        [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
+
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
         [Header("門口擋牆（開門時關閉）")]
         [SerializeField] private Collider doorBlocker;
 
-        private Quaternion _closedRot;
-        private Quaternion _openRot;
-        private bool       _isOpen;
-        private bool       _saved;
-        private Transform  _player;
+        private Quaternion  _closedRot;
+        private Quaternion  _openRot;
+        private bool        _isOpen;
+        private bool        _saved;
+        private Transform   _player;
+        private AudioSource _audio;
 
         private void Start()
         {
@@ -40,6 +46,11 @@ namespace RunLight.Interaction
             }
 
             if (_player == null) Debug.LogWarning("[Door] 找不到玩家！");
+
+            _audio = gameObject.AddComponent<AudioSource>();
+            _audio.spatialBlend = 0f;
+            _audio.playOnAwake  = false;
+            _audio.volume       = soundVolume;
         }
 
         private void Update()
@@ -65,6 +76,8 @@ namespace RunLight.Interaction
         {
             _isOpen = true;
             if (doorBlocker != null) doorBlocker.enabled = false;
+            if (openSound != null) { _audio.clip = openSound; _audio.Play(); Debug.Log("[Door] 播放開門音效"); }
+            else Debug.LogWarning("[Door] openSound 是空的！");
 
             if (!_saved)
             {
@@ -78,6 +91,7 @@ namespace RunLight.Interaction
         {
             _isOpen = false;
             if (doorBlocker != null) doorBlocker.enabled = true;
+            if (closeSound != null) { _audio.clip = closeSound; _audio.Play(); }
         }
 
         private void OnDrawGizmosSelected()
