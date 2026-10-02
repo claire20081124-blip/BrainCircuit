@@ -13,6 +13,7 @@ namespace RunLight.Interaction
         [SerializeField] private float openSpeed = 4f;
 
         [Header("密碼")]
+        [SerializeField] private string doorId      = "codedoor_01"; // 每扇門要唯一
         [SerializeField] private string correctCode = "0613";
 
         [Header("互動距離")]
@@ -60,6 +61,16 @@ namespace RunLight.Interaction
             _audio.spatialBlend = 0f;
             _audio.playOnAwake  = false;
             _audio.volume       = soundVolume;
+
+            // 讀取存檔中的解鎖狀態
+            if (Core.GameManager.HasInstance &&
+                Core.GameManager.Instance.Flags.GetBool(doorId, false))
+            {
+                _unlocked = true;
+                _isOpen   = true;
+                if (doorBlocker != null) doorBlocker.enabled = false;
+                transform.localRotation = _openRot;
+            }
 
             BuildUI();
         }
@@ -127,6 +138,8 @@ namespace RunLight.Interaction
             if (_inputBuffer == correctCode)
             {
                 _unlocked = true;
+                if (Core.GameManager.HasInstance)
+                    Core.GameManager.Instance.Flags.SetBool(doorId, true);
                 CloseUI();
             }
             else

@@ -27,6 +27,11 @@ namespace RunLight.Core
         private float _sessionStartTime;
         private float _accumulatedPlaySeconds;
 
+        public bool    HasPendingSpawn   { get; private set; }
+        public Vector3 PendingSpawnPos   { get; private set; }
+        public float   PendingSpawnRotY  { get; private set; }
+        public void    ClearPendingSpawn() => HasPendingSpawn = false;
+
         /// <summary>讀檔完成後觸發(可用於刷新場景狀態)。</summary>
         public event Action OnGameLoaded;
 
@@ -67,9 +72,10 @@ namespace RunLight.Core
 
         // ---------- 存檔 ----------
         /// <summary>存檔到指定槽(省略則存到目前槽)。</summary>
-        public void SaveGame(int? slot = null)
+        public void SaveGame(int? slot = null, Vector3? playerPos = null, float playerRotY = 0f)
         {
             int targetSlot = slot ?? CurrentSlot;
+            var pos = playerPos ?? Vector3.zero;
             var data = new SaveData
             {
                 slot = targetSlot,
@@ -79,6 +85,10 @@ namespace RunLight.Core
                 flags = Flags.ToData(),
                 identity = Identity.ToData(),
                 collectedShards = new List<string>(_collectedShards),
+                playerPosX = pos.x,
+                playerPosY = pos.y,
+                playerPosZ = pos.z,
+                playerRotY = playerRotY,
             };
 
             SaveSystem.Save(data);
@@ -110,6 +120,13 @@ namespace RunLight.Core
             CurrentChapter = data.currentChapter;
             _accumulatedPlaySeconds = data.playSeconds;
             _sessionStartTime = Time.unscaledTime;
+
+            if (data.playerPosX != 0f || data.playerPosY != 0f || data.playerPosZ != 0f)
+            {
+                HasPendingSpawn  = true;
+                PendingSpawnPos  = new Vector3(data.playerPosX, data.playerPosY, data.playerPosZ);
+                PendingSpawnRotY = data.playerRotY;
+            }
         }
 
         /// <summary>依目前認同值與碎片收集度判定結局。</summary>

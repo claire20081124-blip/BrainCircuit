@@ -159,6 +159,7 @@ namespace RunLight.Player
         {
             if (MovementLocked) return;
             if (UI.BrainQAUI.IsOpen) return;
+            if (UI.PauseMenuUI.IsPaused) return;
 
             if (Cursor.lockState != CursorLockMode.Locked)
             {

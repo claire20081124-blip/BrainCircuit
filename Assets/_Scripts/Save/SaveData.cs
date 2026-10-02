@@ -27,6 +27,12 @@ namespace RunLight.Save
         public IdentityData identity = new();
         public List<string> collectedShards = new(); // 已收集的記憶碎片 id
 
+        // 玩家存檔位置
+        public float playerPosX;
+        public float playerPosY;
+        public float playerPosZ;
+        public float playerRotY;
+
         /// <summary>給讀檔 UI 用的單行摘要。</summary>
         public string DisplaySummary()
         {

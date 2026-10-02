@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using RunLight.Player;
 using RunLight.Core;
 using RunLight.Save;
@@ -90,6 +91,17 @@ namespace RunLight.UI
 
         private void QuitGame()
         {
+            Debug.Log("[PauseMenu] QuitGame 被呼叫");
+            {
+                var gm  = GameManager.Instance;
+                var fpc = _fpc != null ? _fpc : FindObjectOfType<FirstPersonController>();
+                if (fpc != null)
+                    gm.SaveGame(0, fpc.transform.position, fpc.transform.eulerAngles.y);
+                else
+                    gm.SaveGame(0);
+                Debug.Log("[PauseMenu] 存檔完成");
+            }
+            IsPaused = false;
             Time.timeScale = 1f;
             SceneManager.LoadScene(0);
         }
@@ -145,7 +157,7 @@ namespace RunLight.UI
             {
                 var es = new GameObject("EventSystem");
                 es.AddComponent<EventSystem>();
-                es.AddComponent<StandaloneInputModule>();
+                es.AddComponent<InputSystemUIInputModule>();
             }
 
             var canvasGo = new GameObject("PauseCanvas",
