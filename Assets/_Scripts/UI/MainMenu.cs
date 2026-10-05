@@ -48,6 +48,11 @@ namespace RunLight.UI
         [Tooltip("按鈕欄位置（從畫面中心算起）")]
         [SerializeField] private Vector2 buttonPosition = new Vector2(0, -120);
 
+        [Header("新月裝飾")]
+        [SerializeField] private int moonFontSize = 120;
+        [SerializeField] private Vector2 moonPosition = new Vector2(0, -80);
+        [SerializeField] private Color moonColor = new Color(0.85f, 0.90f, 1.0f, 0.75f);
+
         // ---- 執行時建立的物件參考 ----
         private Button _continueButton;
         private GameObject _settingsPanel;

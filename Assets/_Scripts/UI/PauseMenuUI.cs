@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using RunLight.Player;
 using RunLight.Core;
-using RunLight.Save;
+
 
 namespace RunLight.UI
 {
@@ -13,14 +13,16 @@ namespace RunLight.UI
     {
         public static bool IsPaused { get; private set; }
 
+        [Header("外觀")]
+        [SerializeField] private Sprite backgroundSprite;
+
         private GameObject _pausePanel;
         private GameObject _settingsPanel;
-        private GameObject[] _tabContents;  // 0=按鍵說明 1=音量 2=靈敏度 3=存檔
-        private Text[]      _slotLabels = new Text[SaveSystem.MaxSlots];
+        private GameObject[] _tabContents;
         private Font        _font;
         private FirstPersonController _fpc;
 
-        private static readonly string[] TabNames = { "按鍵說明", "音量", "靈敏度", "存檔" };
+        private static readonly string[] TabNames = { "按鍵說明", "音量", "靈敏度" };
 
         private static readonly (string key, string action)[] KeyBindings =
         {
@@ -80,7 +82,6 @@ namespace RunLight.UI
             _pausePanel.SetActive(false);
             _settingsPanel.SetActive(true);
             ShowTab(0);
-            RefreshSlotLabels();
         }
 
         private void BackToPause()
@@ -124,31 +125,6 @@ namespace RunLight.UI
             _fpc?.SetSensitivity(v);
         }
 
-        // ── 存檔 ──────────────────────────────────────────────────
-
-        private void DoSave(int slot)
-        {
-            var data = new SaveData
-            {
-                slot         = slot,
-                currentScene = SceneManager.GetActiveScene().name,
-                playSeconds  = Time.realtimeSinceStartup,
-            };
-
-            SaveSystem.Save(data);
-            RefreshSlotLabels();
-        }
-
-        private void RefreshSlotLabels()
-        {
-            for (int i = 0; i < SaveSystem.MaxSlots; i++)
-            {
-                if (_slotLabels[i] == null) continue;
-                var d = SaveSystem.PeekSummary(i);
-                _slotLabels[i].text = d != null ? d.DisplaySummary() : $"槽 {i}  （空）";
-            }
-        }
-
         // ── 建立 UI ───────────────────────────────────────────────
 
         private void BuildUI()
@@ -172,8 +148,14 @@ namespace RunLight.UI
             scaler.matchWidthOrHeight  = 0.5f;
 
             // 半透明背景
-            var bg = MakeImage(canvasGo.transform, new Color(0f, 0f, 0f, 0.6f),
+            var bg = MakeImage(canvasGo.transform, backgroundSprite != null ? Color.white : new Color(0f, 0f, 0f, 0.6f),
                 Vector2.zero, Vector2.one);
+            if (backgroundSprite != null)
+            {
+                var bgImg = bg.GetComponent<Image>();
+                bgImg.sprite = backgroundSprite;
+                bgImg.type   = Image.Type.Simple;
+            }
 
             _pausePanel    = BuildPausePanel(canvasGo.transform);
             _settingsPanel = BuildSettingsPanel(canvasGo.transform);
@@ -260,10 +242,9 @@ namespace RunLight.UI
         {
             switch (tab)
             {
-                case 0: BuildKeyBindings(parent);   break;
-                case 1: BuildVolumeTab(parent);     break;
-                case 2: BuildSensTab(parent);       break;
-                case 3: BuildSaveTab(parent);       break;
+                case 0: BuildKeyBindings(parent); break;
+                case 1: BuildVolumeTab(parent);   break;
+                case 2: BuildSensTab(parent);     break;
             }
         }
 
@@ -379,57 +360,6 @@ namespace RunLight.UI
             var hrt = handle.GetComponent<RectTransform>();
             hrt.sizeDelta = new Vector2(20f, 0f);
             slider.handleRect = hrt;
-        }
-
-        // 存檔
-        private void BuildSaveTab(Transform parent)
-        {
-            float rowH = 1f / SaveSystem.MaxSlots;
-            for (int i = 0; i < SaveSystem.MaxSlots; i++)
-            {
-                int slot = i;
-                float y  = 1f - rowH * (i + 0.5f);
-
-                // 存檔摘要文字
-                var lbl = new GameObject("Lbl", typeof(Text));
-                lbl.transform.SetParent(parent, false);
-                var t = lbl.GetComponent<Text>();
-                t.font = _font; t.fontSize = 18;
-                t.color = new Color(0.85f, 0.85f, 0.85f);
-                t.alignment = TextAnchor.MiddleLeft;
-                t.raycastTarget = false;
-                t.horizontalOverflow = HorizontalWrapMode.Overflow;
-                var lrt = lbl.GetComponent<RectTransform>();
-                lrt.anchorMin = new Vector2(0.02f, y - 0.07f);
-                lrt.anchorMax = new Vector2(0.6f,  y + 0.07f);
-                lrt.offsetMin = lrt.offsetMax = Vector2.zero;
-                _slotLabels[i] = t;
-
-                // 存檔按鈕
-                MakeSmallButton(parent, "存檔", new Vector2(0.65f, y), () => DoSave(slot));
-            }
-        }
-
-        private void MakeSmallButton(Transform parent, string label, Vector2 anchor,
-            System.Action onClick)
-        {
-            var go = new GameObject("Btn", typeof(Image), typeof(Button));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = new Color(0.15f, 0.4f, 0.15f, 0.9f);
-            go.GetComponent<Button>().onClick.AddListener(() => onClick());
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = rt.anchorMax = anchor;
-            rt.sizeDelta = new Vector2(90f, 38f);
-
-            var lbl = new GameObject("L", typeof(Text));
-            lbl.transform.SetParent(go.transform, false);
-            var t = lbl.GetComponent<Text>();
-            t.font = _font; t.text = label; t.fontSize = 18;
-            t.color = Color.white; t.alignment = TextAnchor.MiddleCenter;
-            t.raycastTarget = false;
-            var lrt = lbl.GetComponent<RectTransform>();
-            lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
-            lrt.offsetMin = lrt.offsetMax = Vector2.zero;
         }
 
         // ── 通用輔助 ──────────────────────────────────────────────
