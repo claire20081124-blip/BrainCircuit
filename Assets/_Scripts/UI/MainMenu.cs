@@ -6,6 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem.UI;
 using RunLight.Core;
 using RunLight.Save;
+using RunLight.Audio;
 
 namespace RunLight.UI
 {
@@ -48,10 +49,6 @@ namespace RunLight.UI
         [Tooltip("按鈕欄位置（從畫面中心算起）")]
         [SerializeField] private Vector2 buttonPosition = new Vector2(0, -120);
 
-        [Header("新月裝飾")]
-        [SerializeField] private int moonFontSize = 120;
-        [SerializeField] private Vector2 moonPosition = new Vector2(0, -80);
-        [SerializeField] private Color moonColor = new Color(0.85f, 0.90f, 1.0f, 0.75f);
 
         // ---- 執行時建立的物件參考 ----
         private Button _continueButton;
@@ -244,6 +241,7 @@ namespace RunLight.UI
         private void OnStart()
         {
             if (!Application.isPlaying) return;
+            if (BGMManager.HasInstance) BGMManager.Instance.StopMusic(0.5f);
             GameManager.Instance.NewGame(newGameSlot);
             LoadScene(gameSceneName);
         }

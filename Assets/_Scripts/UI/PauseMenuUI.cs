@@ -14,8 +14,9 @@ namespace RunLight.UI
         public static bool IsPaused { get; private set; }
 
         [Header("外觀")]
-        [SerializeField] private Sprite backgroundSprite;
+        [SerializeField] private string backgroundSpriteName = "ee";
 
+        private GameObject _pauseCanvas;
         private GameObject _pausePanel;
         private GameObject _settingsPanel;
         private GameObject[] _tabContents;
@@ -61,6 +62,7 @@ namespace RunLight.UI
         {
             IsPaused = true;
             Time.timeScale = 0f;
+            _pauseCanvas.SetActive(true);
             _pausePanel.SetActive(true);
             _settingsPanel.SetActive(false);
             Cursor.lockState = CursorLockMode.None;
@@ -71,6 +73,7 @@ namespace RunLight.UI
         {
             IsPaused = false;
             Time.timeScale = 1f;
+            _pauseCanvas.SetActive(false);
             _pausePanel.SetActive(false);
             _settingsPanel.SetActive(false);
             Cursor.lockState = CursorLockMode.Locked;
@@ -147,28 +150,40 @@ namespace RunLight.UI
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight  = 0.5f;
 
-            // 半透明背景
-            var bg = MakeImage(canvasGo.transform, backgroundSprite != null ? Color.white : new Color(0f, 0f, 0f, 0.6f),
-                Vector2.zero, Vector2.one);
-            if (backgroundSprite != null)
+            // 背景
+            if (!string.IsNullOrEmpty(backgroundSpriteName))
             {
-                var bgImg = bg.GetComponent<Image>();
-                bgImg.sprite = backgroundSprite;
-                bgImg.type   = Image.Type.Simple;
+                var tex = Resources.Load<Texture2D>(backgroundSpriteName);
+                if (tex != null)
+                {
+                    var spr = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+                    var bg = MakeImage(canvasGo.transform, Color.white, Vector2.zero, Vector2.one);
+                    var bgImg = bg.GetComponent<Image>();
+                    bgImg.sprite = spr;
+                    bgImg.type   = Image.Type.Simple;
+                }
             }
 
+            _pauseCanvas   = canvasGo;
             _pausePanel    = BuildPausePanel(canvasGo.transform);
             _settingsPanel = BuildSettingsPanel(canvasGo.transform);
 
             _pausePanel.SetActive(false);
             _settingsPanel.SetActive(false);
+            canvasGo.SetActive(false);
         }
 
         // ── 暫停面板 ──────────────────────────────────────────────
 
         private GameObject BuildPausePanel(Transform root)
         {
-            var panel = MakePanel(root, new Vector2(420f, 420f));
+            var panel = new GameObject("PausePanel", typeof(Image));
+            panel.transform.SetParent(root, false);
+            panel.GetComponent<Image>().color = Color.clear;
+            var rt = panel.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
 
             MakeLabel(panel.transform, "暫停", 48, Color.white, new Vector2(0.5f, 0.82f), new Vector2(280f, 60f));
 
