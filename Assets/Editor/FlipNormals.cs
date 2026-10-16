@@ -18,9 +18,9 @@ public class FlipNormals : EditorWindow
 
     static void Apply()
     {
-        string saveFolder = "Assets/_Art/建模/FlippedMeshes";
+        string saveFolder = "Assets/_Art/T/FlippedMeshes";
         if (!AssetDatabase.IsValidFolder(saveFolder))
-            AssetDatabase.CreateFolder("Assets/_Art/建模", "FlippedMeshes");
+            AssetDatabase.CreateFolder("Assets/_Art/T", "FlippedMeshes");
 
         int count = 0;
         foreach (var go in Selection.gameObjects)
