@@ -25,18 +25,14 @@ namespace RunLight.Audio
 
         private void OnTriggerEnter(Collider other)
         {
-            Debug.Log($"[BGMZone] OnTriggerEnter: {other.name} tag={other.tag}");
             if (!other.CompareTag("Player")) return;
-            Debug.Log($"[BGMZone] 換歌 → {(enterMusic != null ? enterMusic.name : "null")}");
             if (enterMusic != null)
                 BGMManager.Instance.PlayMusic(enterMusic, fadeDuration);
         }
 
         private void OnTriggerExit(Collider other)
         {
-            Debug.Log($"[BGMZone] OnTriggerExit: {other.name} tag={other.tag}");
             if (!other.CompareTag("Player")) return;
-            Debug.Log($"[BGMZone] 離開換歌 → {(exitMusic != null ? exitMusic.name : "null")}");
             if (exitMusic != null)
                 BGMManager.Instance.PlayMusic(exitMusic, fadeDuration);
         }

@@ -18,6 +18,10 @@ namespace RunLight.Interaction
         [SerializeField] private AudioClip closeSound;
         [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
 
+        [Header("開門方向")]
+        [Tooltip("勾選後左右方向互換")]
+        [SerializeField] private bool flipSide = false;
+
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
@@ -34,7 +38,6 @@ namespace RunLight.Interaction
         private void Start()
         {
             _closedRot = transform.localRotation;
-            _openRot   = _closedRot * Quaternion.Euler(0f, openAngle, 0f);
 
             var go = GameObject.FindWithTag("Player");
             if (go != null) _player = go.transform;
@@ -74,10 +77,15 @@ namespace RunLight.Interaction
 
         private void Open()
         {
+            // 判斷玩家在門的哪一側，往外開
+            float side = Vector3.Dot(transform.forward, (_player.position - transform.position).normalized);
+            if (flipSide) side = -side;
+            float angle = side >= 0f ? -openAngle : openAngle;
+            _openRot = _closedRot * Quaternion.Euler(0f, angle, 0f);
+
             _isOpen = true;
             if (doorBlocker != null) doorBlocker.enabled = false;
-            if (openSound != null) { _audio.clip = openSound; _audio.Play(); Debug.Log("[Door] 播放開門音效"); }
-            else Debug.LogWarning("[Door] openSound 是空的！");
+            if (openSound != null) { _audio.clip = openSound; _audio.Play(); }
 
             if (!_saved)
             {

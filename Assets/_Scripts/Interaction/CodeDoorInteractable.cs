@@ -16,6 +16,10 @@ namespace RunLight.Interaction
         [SerializeField] private string doorId      = "codedoor_01"; // 每扇門要唯一
         [SerializeField] private string correctCode = "0613";
 
+        [Header("開門方向")]
+        [Tooltip("勾選後左右方向互換")]
+        [SerializeField] private bool flipSide = false;
+
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
@@ -163,15 +167,17 @@ namespace RunLight.Interaction
         // ── 門控制 ────────────────────────────────────────────
         private void OpenDoor()
         {
+            Vector3 toPlayer = (_player.position - transform.position).normalized;
+            float sideF = Vector3.Dot(transform.forward, toPlayer);
+            float sideR = Vector3.Dot(transform.right, toPlayer);
+            float side  = Mathf.Abs(sideF) >= Mathf.Abs(sideR) ? sideF : sideR;
+            if (flipSide) side = -side;
+            float angle = side >= 0f ? -openAngle : openAngle;
+            _openRot = _closedRot * Quaternion.Euler(0f, angle, 0f);
+
             _isOpen = true;
             if (doorBlocker != null) doorBlocker.enabled = false;
-            if (openSound != null)
-            {
-                _audio.clip = openSound;
-                _audio.Play();
-                Debug.Log($"[CodeDoor] Play() called | clip={openSound.name} len={openSound.length:F2}s | vol={_audio.volume} | mute={_audio.mute} | isPlaying={_audio.isPlaying}");
-            }
-            else Debug.LogWarning("[CodeDoor] openSound 是空的！");
+            if (openSound != null) { _audio.clip = openSound; _audio.Play(); }
             if (!_saved)
             {
                 _saved = true;

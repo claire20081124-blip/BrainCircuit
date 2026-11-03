@@ -39,6 +39,14 @@ namespace RunLight.Interaction
         [Header("旋轉速度")]
         [SerializeField] private float spinSpeed = 60f;
 
+        [Header("定點移動")]
+        [SerializeField] private float moveSpeed   = 1.5f;
+        [SerializeField] private float waitAtPoint = 1.5f;
+
+        private Transform[] _movePoints;
+        private int         _moveTarget;
+        private float       _waitTimer;
+
         // 每幀最近的腦子才能觸發（Update 投票，LateUpdate 執行）
         private static BrainInteractable _candidate;
         private static float             _candidateDist;
@@ -55,10 +63,13 @@ namespace RunLight.Interaction
         private Transform _player;
         private bool      _used;
 
-        public void Init(BrainQuestion q, bool bad = false)
+        public void Init(BrainQuestion q, bool bad = false, Transform[] movePoints = null)
         {
-            question   = q;
-            isBadBrain = bad;
+            question    = q;
+            isBadBrain  = bad;
+            _movePoints = movePoints;
+            _moveTarget = movePoints != null && movePoints.Length > 1
+                ? Random.Range(0, movePoints.Length) : 0;
         }
 
         private void Awake()
@@ -80,6 +91,9 @@ namespace RunLight.Interaction
         {
             if (!_used && brainModel != null)
                 brainModel.transform.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.World);
+
+            if (!_used && _movePoints != null && _movePoints.Length > 1)
+                MoveBetweenPoints();
 
             if (_player == null)
             {
@@ -152,6 +166,22 @@ namespace RunLight.Interaction
                 PlayerStats.Instance.TakeDamage(question.loseAmount > 0 ? question.loseAmount : 8);
 
             Destroy(gameObject);
+        }
+
+        private void MoveBetweenPoints()
+        {
+            Vector3 target = _movePoints[_moveTarget].position;
+            transform.position = Vector3.MoveTowards(transform.position, target, moveSpeed * Time.deltaTime);
+
+            if (Vector3.Distance(transform.position, target) < 0.1f)
+            {
+                _waitTimer += Time.deltaTime;
+                if (_waitTimer >= waitAtPoint)
+                {
+                    _waitTimer  = 0f;
+                    _moveTarget = (_moveTarget + 1) % _movePoints.Length;
+                }
+            }
         }
 
         private void OnDrawGizmosSelected()

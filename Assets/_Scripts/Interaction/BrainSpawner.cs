@@ -103,7 +103,7 @@ namespace RunLight.Interaction
             }
 
             var bi = go.GetComponent<BrainInteractable>();
-            if (bi != null) bi.Init(q, bad);
+            if (bi != null) bi.Init(q, bad, spawnPoints);
 
             _brains[index] = go;
 
