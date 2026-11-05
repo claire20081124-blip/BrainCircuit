@@ -16,6 +16,9 @@ namespace RunLight.UI
         [Header("外觀")]
         [SerializeField] private string backgroundSpriteName = "ee";
 
+        [Header("操作說明圖（有圖時取代文字表格）")]
+        [SerializeField] private Sprite controlsGuideSprite;
+
         private GameObject _pauseCanvas;
         private GameObject _pausePanel;
         private GameObject _settingsPanel;
@@ -266,8 +269,22 @@ namespace RunLight.UI
         // 按鍵說明
         private void BuildKeyBindings(Transform parent)
         {
+            if (controlsGuideSprite != null)
+            {
+                var go = new GameObject("ControlsImg", typeof(Image));
+                go.transform.SetParent(parent, false);
+                var img = go.GetComponent<Image>();
+                img.sprite = controlsGuideSprite;
+                img.preserveAspect = true;
+                img.raycastTarget = false;
+                var rt = go.GetComponent<RectTransform>();
+                rt.anchorMin = new Vector2(0.05f, 0.05f);
+                rt.anchorMax = new Vector2(0.95f, 0.95f);
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
+                return;
+            }
+
             float rowH = 1f / (KeyBindings.Length + 1);
-            // 欄位標題
             MakeRowLabel(parent, "按鍵", 0f, 1f - rowH * 0.5f, true);
             MakeRowLabel(parent, "功能", 0.45f, 1f - rowH * 0.5f, true);
 

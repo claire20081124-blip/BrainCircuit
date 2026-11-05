@@ -167,9 +167,12 @@ namespace RunLight.Interaction
         // ── 門控制 ────────────────────────────────────────────
         private void OpenDoor()
         {
-            Vector3 toPlayer = (_player.position - transform.position).normalized;
-            float sideF = Vector3.Dot(transform.forward, toPlayer);
-            float sideR = Vector3.Dot(transform.right, toPlayer);
+            // 用關門狀態的方向判斷側邊，避免動畫中途按 E 導致方向算錯
+            Vector3 toPlayer    = (_player.position - transform.position).normalized;
+            Vector3 closedFwd   = _closedRot * Vector3.forward;
+            Vector3 closedRight = _closedRot * Vector3.right;
+            float sideF = Vector3.Dot(closedFwd,   toPlayer);
+            float sideR = Vector3.Dot(closedRight,  toPlayer);
             float side  = Mathf.Abs(sideF) >= Mathf.Abs(sideR) ? sideF : sideR;
             if (flipSide) side = -side;
             float angle = side >= 0f ? -openAngle : openAngle;

@@ -25,6 +25,11 @@ namespace RunLight.UI
         [Header("選B動畫（選填，有素材時拖入）")]
         [SerializeField] private UnityEngine.UI.RawImage choiceAnimImage;
 
+        [Header("Game Over 素材（選填，有圖時用圖）")]
+        [SerializeField] private Sprite gameOverSprite;   // 意識消散 PNG
+        [SerializeField] private Sprite restartSprite;    // 重新開始按鈕 PNG
+        [SerializeField] private Sprite mainMenuSprite;   // 主選單按鈕 PNG
+
         [Header("起始位置（選B時傳送）")]
         [SerializeField] public Transform startPoint;
 
@@ -293,23 +298,39 @@ namespace RunLight.UI
             _gameOverGroup.blocksRaycasts = false;
             goPanel.SetActive(false);
 
-            MakeLabel(goPanel.transform, font, "意識消散",
-                72, new Color(0.9f, 0.2f, 0.2f), new Vector2(0.5f, 0.60f), new Vector2(800f, 90f));
+            // 意識消散 圖 / 文字
+            if (gameOverSprite != null)
+                MakeSpriteImage(goPanel.transform, gameOverSprite,
+                    new Vector2(0.5f, 0.65f), new Vector2(600f, 180f));
+            else
+                MakeLabel(goPanel.transform, font, "意識消散",
+                    72, new Color(0.9f, 0.2f, 0.2f), new Vector2(0.5f, 0.65f), new Vector2(800f, 90f));
 
             MakeLabel(goPanel.transform, font, "你的自我已被系統完全覆寫",
-                26, new Color(1f, 1f, 1f, 0.6f), new Vector2(0.5f, 0.50f), new Vector2(700f, 40f));
+                24, new Color(1f, 1f, 1f, 0.55f), new Vector2(0.5f, 0.50f), new Vector2(700f, 36f));
 
-            MakeButton(goPanel.transform, font,
-                "重新開始", "",
-                new Vector2(0.5f, 0.35f), new Vector2(-180f, 0f),
-                new Color(0.4f, 0.15f, 0.15f, 0.9f),
-                LoadFromSave);
+            // 重新開始按鈕
+            if (restartSprite != null)
+                MakeSpriteButton(goPanel.transform, restartSprite,
+                    new Vector2(0.5f, 0.30f), new Vector2(-220f, 0f), new Vector2(380f, 100f), LoadFromSave);
+            else
+                MakeButton(goPanel.transform, font,
+                    "重新開始", "",
+                    new Vector2(0.5f, 0.30f), new Vector2(-220f, 0f),
+                    new Color(0.4f, 0.15f, 0.15f, 0.9f),
+                    LoadFromSave);
 
-            MakeButton(goPanel.transform, font,
-                "主選單", "",
-                new Vector2(0.5f, 0.35f), new Vector2(180f, 0f),
-                new Color(0.15f, 0.15f, 0.15f, 0.9f),
-                () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
+            // 主選單按鈕
+            if (mainMenuSprite != null)
+                MakeSpriteButton(goPanel.transform, mainMenuSprite,
+                    new Vector2(0.5f, 0.30f), new Vector2(220f, 0f), new Vector2(380f, 100f),
+                    () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
+            else
+                MakeButton(goPanel.transform, font,
+                    "主選單", "",
+                    new Vector2(0.5f, 0.30f), new Vector2(220f, 0f),
+                    new Color(0.15f, 0.15f, 0.15f, 0.9f),
+                    () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
         }
 
         private void MakeLabel(Transform parent, Font font, string text, int size,
@@ -367,6 +388,37 @@ namespace RunLight.UI
             var srt = subGo.GetComponent<RectTransform>();
             srt.anchorMin = Vector2.zero; srt.anchorMax = new Vector2(1f, 0.5f);
             srt.offsetMin = srt.offsetMax = Vector2.zero;
+        }
+
+        private void MakeSpriteImage(Transform parent, Sprite sprite,
+            Vector2 anchor, Vector2 sizeDelta)
+        {
+            var go = new GameObject("SpriteImg", typeof(Image));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.sprite = sprite;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = anchor;
+            rt.anchoredPosition = Vector2.zero;
+            rt.sizeDelta = sizeDelta;
+        }
+
+        private void MakeSpriteButton(Transform parent, Sprite sprite,
+            Vector2 anchor, Vector2 offset, Vector2 sizeDelta,
+            UnityEngine.Events.UnityAction onClick)
+        {
+            var go = new GameObject("SpriteBtn", typeof(Image), typeof(Button));
+            go.transform.SetParent(parent, false);
+            var img = go.GetComponent<Image>();
+            img.sprite = sprite;
+            img.preserveAspect = true;
+            go.GetComponent<Button>().onClick.AddListener(onClick);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = rt.anchorMax = anchor;
+            rt.anchoredPosition = offset;
+            rt.sizeDelta = sizeDelta;
         }
     }
 }

@@ -102,14 +102,15 @@ namespace RunLight.Interaction
             var txt = textGo.GetComponent<Text>();
             txt.font      = _font;
             txt.text      = noteContent;
-            txt.fontSize  = 28;
+            txt.fontSize  = 26;
+            txt.lineSpacing = 1.4f;
             txt.color     = new Color(0.10f, 0.08f, 0.05f);
-            txt.alignment = TextAnchor.MiddleCenter;
+            txt.alignment = TextAnchor.UpperLeft;
             txt.horizontalOverflow = HorizontalWrapMode.Wrap;
             txt.verticalOverflow   = VerticalWrapMode.Overflow;
             txt.raycastTarget = false;
             var trt = textGo.GetComponent<RectTransform>();
-            trt.anchorMin = new Vector2(0.05f, 0.15f); trt.anchorMax = new Vector2(0.95f, 0.88f);
+            trt.anchorMin = new Vector2(0.08f, 0.15f); trt.anchorMax = new Vector2(0.92f, 0.90f);
             trt.offsetMin = trt.offsetMax = Vector2.zero;
 
             // 關閉提示

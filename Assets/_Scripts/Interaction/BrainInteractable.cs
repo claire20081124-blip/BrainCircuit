@@ -69,7 +69,7 @@ namespace RunLight.Interaction
             isBadBrain  = bad;
             _movePoints = movePoints;
             _moveTarget = movePoints != null && movePoints.Length > 1
-                ? Random.Range(0, movePoints.Length) : 0;
+                ? UnityEngine.Random.Range(0, movePoints.Length) : 0;
         }
 
         private void Awake()

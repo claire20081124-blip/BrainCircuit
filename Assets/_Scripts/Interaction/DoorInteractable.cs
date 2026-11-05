@@ -77,8 +77,9 @@ namespace RunLight.Interaction
 
         private void Open()
         {
-            // 判斷玩家在門的哪一側，往外開
-            float side = Vector3.Dot(transform.forward, (_player.position - transform.position).normalized);
+            // 用關門狀態的 forward 判斷側邊，避免動畫中途按 E 導致方向算錯
+            Vector3 closedForward = _closedRot * Vector3.forward;
+            float side = Vector3.Dot(closedForward, (_player.position - transform.position).normalized);
             if (flipSide) side = -side;
             float angle = side >= 0f ? -openAngle : openAngle;
             _openRot = _closedRot * Quaternion.Euler(0f, angle, 0f);

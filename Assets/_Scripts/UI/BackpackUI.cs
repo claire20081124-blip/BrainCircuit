@@ -560,17 +560,18 @@ namespace RunLight.UI
             // 紙條顯示層（道具有 noteText 時顯示，其他時候隱藏）
             _inspectNoteView = new GameObject("NoteView", typeof(Image));
             _inspectNoteView.transform.SetParent(_inspectPanel.transform, false);
-            _inspectNoteView.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+            _inspectNoteView.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.70f);
             var nvrt = _inspectNoteView.GetComponent<RectTransform>();
-            nvrt.anchorMin = new Vector2(0.20f, 0.16f); nvrt.anchorMax = new Vector2(0.80f, 0.88f);
+            nvrt.anchorMin = new Vector2(0.20f, 0.08f); nvrt.anchorMax = new Vector2(0.80f, 0.95f);
             nvrt.offsetMin = nvrt.offsetMax = Vector2.zero;
 
-            _inspectNoteTxt = MakeTxt("NoteTxt", _inspectNoteView.transform, "", 48,
+            _inspectNoteTxt = MakeTxt("NoteTxt", _inspectNoteView.transform, "", 34,
                 new Color(0.90f, 0.88f, 0.82f, 1f), FontStyle.Normal);
             var ntrt = _inspectNoteTxt.rectTransform;
-            ntrt.anchorMin = new Vector2(0.06f, 0.08f); ntrt.anchorMax = new Vector2(0.94f, 0.92f);
+            ntrt.anchorMin = new Vector2(0.07f, 0.06f); ntrt.anchorMax = new Vector2(0.93f, 0.94f);
             ntrt.offsetMin = ntrt.offsetMax = Vector2.zero;
-            _inspectNoteTxt.alignment          = TextAnchor.MiddleCenter;
+            _inspectNoteTxt.alignment          = TextAnchor.UpperLeft;
+            _inspectNoteTxt.lineSpacing        = 1.5f;
             _inspectNoteTxt.horizontalOverflow  = HorizontalWrapMode.Wrap;
             _inspectNoteTxt.verticalOverflow    = VerticalWrapMode.Overflow;
 
