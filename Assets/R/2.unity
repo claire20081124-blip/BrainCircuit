@@ -290,16 +290,18 @@ MonoBehaviour:
   videoFadeIn: 0.5
   videoFadeOut: 0.6
   playbackSpeed: 1
-  videoDuration: 6
+  videoDuration: 15
   sceneTransitionFade: 1.5
   sceneTransitionHold: 0.5
-  dialogueLines:
-  - characterName: 1
-    text: 111
-  - characterName: 2
-    text: 222
-  - characterName: 3
-    text: 333
+  openingTexts:
+  - "\u5982\u679C\u4EBA\u985E\u6709\u4E86\u65B0\u4E16\u754C"
+  - "\u300C\u9019\u4E00\u6B21\uFF0C\u4F60\u6703\u505A\u51FA\u4EC0\u9EBC\u9078\u64C7\uFF1F\u300D"
+  textFadeIn: 1.2
+  textHold: 3
+  textFadeOut: 0.8
+  textCharDelay: 0.1
+  textFontSize: 36
+  dialogueLines: []
   charInterval: 0.045
 --- !u!4 &792554409
 Transform:

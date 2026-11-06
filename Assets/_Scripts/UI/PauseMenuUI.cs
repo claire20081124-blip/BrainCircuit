@@ -26,14 +26,16 @@ namespace RunLight.UI
         private Font        _font;
         private FirstPersonController _fpc;
 
-        private static readonly string[] TabNames = { "按鍵說明", "音量", "靈敏度" };
+        private static readonly string[] TabNames = { "案件說明", "音量", "靈敏度" };
+        private static readonly string[] TabIcons = { "🔑", "🔊", "🎯" };
 
         private static readonly (string key, string action)[] KeyBindings =
         {
-            ("W A S D",  "移動"),
-            ("Q",        "快跑"),
-            ("空白鍵",   "互動（吃腦子）"),
-            ("Tab",      "顯示 / 隱藏滑鼠"),
+            ("W A S D", "移動"),
+            ("E",        "互動 / 確定"),
+            ("Q",        "取消 / 確定"),
+            ("Shift",    "跳躍 / 互動"),
+            ("Tab",      "打開選單"),
             ("Esc",      "暫停 / 繼續"),
         };
 
@@ -188,7 +190,8 @@ namespace RunLight.UI
             rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
 
-            MakeLabel(panel.transform, "暫停", 48, Color.white, new Vector2(0.5f, 0.82f), new Vector2(280f, 60f));
+            MakeLabel(panel.transform, "暫停", 56, Color.white, new Vector2(0.5f, 0.84f), new Vector2(300f, 70f));
+            MakeLabel(panel.transform, "PAUSE", 18, new Color(1f,1f,1f,0.35f), new Vector2(0.5f, 0.77f), new Vector2(200f, 26f));
 
             float[] yAnchors = { 0.60f, 0.42f, 0.22f };
             string[] labels  = { "繼續", "設定", "離開遊戲" };
@@ -208,50 +211,94 @@ namespace RunLight.UI
 
         private GameObject BuildSettingsPanel(Transform root)
         {
-            var panel = MakePanel(root, new Vector2(900f, 620f));
+            var panel = MakePanel(root, new Vector2(960f, 640f));
 
-            MakeLabel(panel.transform, "設定", 40, Color.white, new Vector2(0.5f, 0.90f), new Vector2(600f, 50f));
+            // ── 左側 Tab 欄 ──
+            var sidebar = new GameObject("Sidebar", typeof(Image));
+            sidebar.transform.SetParent(panel.transform, false);
+            sidebar.GetComponent<Image>().color = new Color(0.08f, 0.08f, 0.12f, 1f);
+            var sbRt = sidebar.GetComponent<RectTransform>();
+            sbRt.anchorMin = new Vector2(0f, 0f);
+            sbRt.anchorMax = new Vector2(0.28f, 1f);
+            sbRt.offsetMin = sbRt.offsetMax = Vector2.zero;
 
-            // Tab 按鈕
+            // ── 右側 內容區 ──
+            var contentArea = new GameObject("ContentArea");
+            contentArea.transform.SetParent(panel.transform, false);
+            var caRt = contentArea.AddComponent<RectTransform>();
+            caRt.anchorMin = new Vector2(0.30f, 0.08f);
+            caRt.anchorMax = new Vector2(0.98f, 0.90f);
+            caRt.offsetMin = caRt.offsetMax = Vector2.zero;
+
             _tabContents = new GameObject[TabNames.Length];
-            float tabW   = 1f / TabNames.Length;
+            float tabSlotH = 0.18f;
+
             for (int i = 0; i < TabNames.Length; i++)
             {
                 int idx = i;
+                float yMax = 0.95f - tabSlotH * i;
+                float yMin = yMax - tabSlotH + 0.02f;
+
+                // 側邊 Tab 按鈕
                 var tabBtn = new GameObject("Tab_" + i, typeof(Image), typeof(Button));
-                tabBtn.transform.SetParent(panel.transform, false);
-                tabBtn.GetComponent<Image>().color = new Color(0.2f, 0.2f, 0.28f, 1f);
+                tabBtn.transform.SetParent(sidebar.transform, false);
+                tabBtn.GetComponent<Image>().color = new Color(0.14f, 0.14f, 0.20f, 1f);
                 tabBtn.GetComponent<Button>().onClick.AddListener(() => ShowTab(idx));
                 var rt = tabBtn.GetComponent<RectTransform>();
-                rt.anchorMin        = new Vector2(tabW * i + 0.01f, 0.74f);
-                rt.anchorMax        = new Vector2(tabW * (i + 1) - 0.01f, 0.83f);
-                rt.offsetMin        = rt.offsetMax = Vector2.zero;
+                rt.anchorMin = new Vector2(0.04f, yMin);
+                rt.anchorMax = new Vector2(0.96f, yMax);
+                rt.offsetMin = rt.offsetMax = Vector2.zero;
 
+                // 圖示
+                var icon = new GameObject("Icon", typeof(Text));
+                icon.transform.SetParent(tabBtn.transform, false);
+                var it = icon.GetComponent<Text>();
+                it.font = _font; it.text = TabIcons[i]; it.fontSize = 20;
+                it.color = new Color(1f,1f,1f,0.7f); it.alignment = TextAnchor.MiddleCenter;
+                it.raycastTarget = false;
+                var irt = icon.GetComponent<RectTransform>();
+                irt.anchorMin = new Vector2(0f, 0f); irt.anchorMax = new Vector2(0.3f, 1f);
+                irt.offsetMin = irt.offsetMax = Vector2.zero;
+
+                // Tab 名稱
                 var lbl = new GameObject("L", typeof(Text));
                 lbl.transform.SetParent(tabBtn.transform, false);
                 var t = lbl.GetComponent<Text>();
-                t.font    = _font; t.text = TabNames[i]; t.fontSize = 20;
-                t.color   = Color.white; t.alignment = TextAnchor.MiddleCenter;
+                t.font = _font; t.text = TabNames[i]; t.fontSize = 20;
+                t.color = Color.white; t.alignment = TextAnchor.MiddleLeft;
                 t.raycastTarget = false;
                 var lrt = lbl.GetComponent<RectTransform>();
-                lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
-                lrt.offsetMin = lrt.offsetMax = Vector2.zero;
+                lrt.anchorMin = new Vector2(0.3f, 0f); lrt.anchorMax = Vector2.one;
+                lrt.offsetMin = new Vector2(4f,0f); lrt.offsetMax = Vector2.zero;
 
-                // Tab 內容區
+                // 內容區
                 var content = new GameObject("Content_" + i);
-                content.transform.SetParent(panel.transform, false);
+                content.transform.SetParent(contentArea.transform, false);
                 var crt = content.AddComponent<RectTransform>();
-                crt.anchorMin = new Vector2(0.02f, 0.12f);
-                crt.anchorMax = new Vector2(0.98f, 0.72f);
+                crt.anchorMin = Vector2.zero; crt.anchorMax = Vector2.one;
                 crt.offsetMin = crt.offsetMax = Vector2.zero;
                 _tabContents[i] = content;
 
                 BuildTabContent(content.transform, i);
             }
 
-            // 返回按鈕
-            MakePanelButton(panel.transform, "← 返回", 0.05f,
-                new Color(0.3f, 0.15f, 0.15f, 0.9f), BackToPause, width: 0.3f);
+            // 返回按鈕（左下）
+            var backBtn = new GameObject("Back", typeof(Image), typeof(Button));
+            backBtn.transform.SetParent(sidebar.transform, false);
+            backBtn.GetComponent<Image>().color = new Color(0.3f, 0.12f, 0.12f, 0.9f);
+            backBtn.GetComponent<Button>().onClick.AddListener(BackToPause);
+            var brt = backBtn.GetComponent<RectTransform>();
+            brt.anchorMin = new Vector2(0.04f, 0.02f); brt.anchorMax = new Vector2(0.96f, 0.10f);
+            brt.offsetMin = brt.offsetMax = Vector2.zero;
+            var blbl = new GameObject("L", typeof(Text));
+            blbl.transform.SetParent(backBtn.transform, false);
+            var bt = blbl.GetComponent<Text>();
+            bt.font = _font; bt.text = "← 返回"; bt.fontSize = 18;
+            bt.color = Color.white; bt.alignment = TextAnchor.MiddleCenter;
+            bt.raycastTarget = false;
+            var blrt = blbl.GetComponent<RectTransform>();
+            blrt.anchorMin = Vector2.zero; blrt.anchorMax = Vector2.one;
+            blrt.offsetMin = blrt.offsetMax = Vector2.zero;
 
             return panel;
         }
@@ -327,6 +374,7 @@ namespace RunLight.UI
             float cur = FindObjectOfType<FirstPersonController>()?.GetSensitivity() ?? 0.15f;
             MakeSliderRow(parent, "滑鼠靈敏度", 0.65f, 0.03f, 0.5f, cur, OnSensitivityChanged);
         }
+
 
         private void MakeSliderRow(Transform parent, string label, float yAnchor,
             float min, float max, float current,

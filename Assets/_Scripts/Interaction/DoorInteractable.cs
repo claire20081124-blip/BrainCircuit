@@ -25,6 +25,10 @@ namespace RunLight.Interaction
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
+        [Header("自動關門")]
+        [Tooltip("開門後幾秒自動關（0 = 不自動關）")]
+        [SerializeField] private float autoCloseDelay = 3f;
+
         [Header("門口擋牆（開門時關閉）")]
         [SerializeField] private Collider doorBlocker;
 
@@ -32,6 +36,7 @@ namespace RunLight.Interaction
         private Quaternion  _openRot;
         private bool        _isOpen;
         private bool        _saved;
+        private float       _autoCloseTimer;
         private Transform   _player;
         private AudioSource _audio;
 
@@ -68,6 +73,13 @@ namespace RunLight.Interaction
                 else Open();
             }
 
+            // 自動關門倒數
+            if (_isOpen && autoCloseDelay > 0f)
+            {
+                _autoCloseTimer -= Time.deltaTime;
+                if (_autoCloseTimer <= 0f) Close();
+            }
+
             // 平滑旋轉
             transform.localRotation = Quaternion.Slerp(
                 transform.localRotation,
@@ -85,6 +97,7 @@ namespace RunLight.Interaction
             _openRot = _closedRot * Quaternion.Euler(0f, angle, 0f);
 
             _isOpen = true;
+            _autoCloseTimer = autoCloseDelay;
             if (doorBlocker != null) doorBlocker.enabled = false;
             if (openSound != null) { _audio.clip = openSound; _audio.Play(); }
 

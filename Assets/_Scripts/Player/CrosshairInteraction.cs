@@ -28,7 +28,8 @@ namespace RunLight.Player
             bool uiOpen = UI.BackpackUI.IsOpen
                        || ThrowSystem.IsAiming
                        || NoteReadable.IsReading
-                       || CodeDoorInteractable.IsInputting;
+                       || CodeDoorInteractable.IsInputting
+                       || Interaction.BoxHideSystem.IsHiding;
 
             if (uiOpen)
             {

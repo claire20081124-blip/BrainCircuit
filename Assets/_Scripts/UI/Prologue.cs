@@ -48,7 +48,15 @@ namespace RunLight.UI
         [Tooltip("全黑後停留幾秒再載入場景")]
         [SerializeField] private float sceneTransitionHold = 0.5f;
 
-        [Header("對話（影片結束後）")]
+        [Header("開場白文字（影片前）")]
+        [SerializeField] private string[] openingTexts;
+        [SerializeField] private float    textFadeIn    = 0.5f;
+        [SerializeField] private float    textHold      = 2.0f;
+        [SerializeField] private float    textFadeOut   = 0.8f;
+        [SerializeField] private float    textCharDelay = 0.06f;
+        [SerializeField] private int      textFontSize  = 36;
+
+        [Header("對話（影片結束後，可留空）")]
         [SerializeField] private DialogueLine[] dialogueLines;
         [SerializeField] private float charInterval = 0.04f;
 
@@ -61,6 +69,8 @@ namespace RunLight.UI
         // ── UI 參照 ───────────────────────────────────────────────────────────
         private Image      _fadeOverlay;
         private RawImage   _videoDisplay;
+        private Text       _openingTextLabel;
+        private CanvasGroup _openingTextGroup;
         private GameObject _dialogueBox;
         private Text       _nameText;
         private Text       _dialogueText;
@@ -68,7 +78,7 @@ namespace RunLight.UI
         private Font       _font;
 
         // ── 狀態機 ────────────────────────────────────────────────────────────
-        private enum Phase { Video, DialogueTyping, DialogueWait, Done }
+        private enum Phase { Opening, Video, DialogueTyping, DialogueWait, Done }
         private Phase _phase      = Phase.Video;
         private bool  _skipVideo;
         private bool  _skipTyping;
@@ -113,23 +123,78 @@ namespace RunLight.UI
 
         private IEnumerator Start()
         {
+            // 1. 開場白文字
+            if (openingTexts != null && openingTexts.Length > 0)
+                yield return RunOpeningTexts();
+
+            // 2. 動畫影片
             if (openingVideo != null)
                 yield return PlayVideo();
 
+            // 3. 對話（選填）
             if (dialogueLines != null && dialogueLines.Length > 0)
                 yield return RunDialogue();
             else
-                LoadNext();
+                yield return FadeAndLoad();
         }
 
         private void AdvanceInput()
         {
             switch (_phase)
             {
+                case Phase.Opening:        /* 開場白不可跳過 */ break;
                 case Phase.Video:          _skipVideo   = true; break;
                 case Phase.DialogueTyping: _skipTyping  = true; break;
                 case Phase.DialogueWait:   _inputSignal = true; break;
             }
+        }
+
+        // ── 開場白文字 ────────────────────────────────────────────────────────
+        private IEnumerator RunOpeningTexts()
+        {
+            _phase = Phase.Opening;
+            _fadeOverlay.color = new Color(0f, 0f, 0f, 0f);
+            _openingTextGroup.gameObject.SetActive(true);
+
+            foreach (var line in openingTexts)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                _openingTextLabel.text = "";
+                yield return FadeGroup(_openingTextGroup, 0f, 1f, textFadeIn);
+
+                // 打字機效果
+                foreach (char c in line)
+                {
+                    _openingTextLabel.text += c;
+                    yield return new WaitForSeconds(textCharDelay);
+                }
+
+                // 打完後停留
+                float t = 0f;
+                while (t < textHold)
+                {
+                    t += Time.deltaTime;
+                    yield return null;
+                }
+
+                yield return FadeGroup(_openingTextGroup, 1f, 0f, textFadeOut);
+            }
+
+            _openingTextGroup.gameObject.SetActive(false);
+        }
+
+        private IEnumerator FadeGroup(CanvasGroup group, float from, float to, float duration)
+        {
+            float t = 0f;
+            group.alpha = from;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                group.alpha = Mathf.Lerp(from, to, t / duration);
+                yield return null;
+            }
+            group.alpha = to;
         }
 
         // ── 影片播放 ──────────────────────────────────────────────────────────
@@ -186,9 +251,7 @@ namespace RunLight.UI
                 var  line   = dialogueLines[i];
                 bool isLast = i == dialogueLines.Length - 1;
 
-                _nameText.transform.parent.gameObject.SetActive(
-                    !string.IsNullOrWhiteSpace(line.characterName));
-                _nameText.text     = line.characterName ?? "";
+                _nameText.transform.parent.gameObject.SetActive(false);
                 _dialogueText.text = "";
                 _hintText.text     = "";
 
@@ -275,6 +338,25 @@ namespace RunLight.UI
             _videoDisplay.raycastTarget = false;
             Stretch(_videoDisplay.rectTransform);
             videoGo.SetActive(false);
+
+            // 開場白文字層
+            var otGo = new GameObject("OpeningTextGroup", typeof(CanvasGroup), typeof(RectTransform));
+            otGo.transform.SetParent(canvasGo.transform, false);
+            _openingTextGroup = otGo.GetComponent<CanvasGroup>();
+            _openingTextGroup.alpha = 0f;
+            Stretch(otGo.GetComponent<RectTransform>());
+            otGo.SetActive(false);
+
+            _openingTextLabel = MakeTxt("OpeningText", otGo.transform, "", textFontSize,
+                new Color(0.9f, 0.88f, 0.82f), FontStyle.Normal);
+            _openingTextLabel.alignment        = TextAnchor.MiddleCenter;
+            _openingTextLabel.lineSpacing      = 1.6f;
+            _openingTextLabel.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _openingTextLabel.verticalOverflow   = VerticalWrapMode.Overflow;
+            var otRt = _openingTextLabel.rectTransform;
+            otRt.anchorMin = new Vector2(0.15f, 0.3f);
+            otRt.anchorMax = new Vector2(0.85f, 0.7f);
+            otRt.offsetMin = otRt.offsetMax = Vector2.zero;
 
             _dialogueBox = BuildDialogueBox(canvasGo.transform);
             _dialogueBox.SetActive(false);

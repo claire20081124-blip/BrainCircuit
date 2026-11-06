@@ -152,35 +152,18 @@ namespace RunLight.UI
                 glowRt.offsetMin = glowRt.offsetMax = Vector2.zero;
             }
 
-            // ---- 標題 ----
-            var title = CreateText("Title", canvasGo.transform, gameTitle, titleFontSize, Accent, FontStyle.Bold);
-            var titleRt = title.rectTransform;
-            titleRt.anchorMin = new Vector2(0.5f, 1f);
-            titleRt.anchorMax = new Vector2(0.5f, 1f);
-            titleRt.pivot = new Vector2(0.5f, 1f);
-            titleRt.anchoredPosition = titlePosition;
-            titleRt.sizeDelta = new Vector2(1200, 180);
-
-            var sub = CreateText("Subtitle", canvasGo.transform, subtitle, subtitleFontSize, TextColor, FontStyle.Italic);
-            var subRt = sub.rectTransform;
-            subRt.anchorMin = new Vector2(0.5f, 1f);
-            subRt.anchorMax = new Vector2(0.5f, 1f);
-            subRt.pivot = new Vector2(0.5f, 1f);
-            subRt.anchoredPosition = subtitlePosition;
-            subRt.sizeDelta = new Vector2(1200, 60);
-
             // ---- 按鈕欄 ----
             var column = new GameObject("ButtonColumn", typeof(RectTransform), typeof(VerticalLayoutGroup));
             column.transform.SetParent(canvasGo.transform, false);
             var colRt = column.GetComponent<RectTransform>();
-            colRt.anchorMin = new Vector2(0.5f, 0.5f);
-            colRt.anchorMax = new Vector2(0.5f, 0.5f);
-            colRt.pivot = new Vector2(0.5f, 0.5f);
+            colRt.anchorMin = new Vector2(0f, 0.5f);
+            colRt.anchorMax = new Vector2(0f, 0.5f);
+            colRt.pivot = new Vector2(0f, 0.5f);
             colRt.anchoredPosition = buttonPosition;
             colRt.sizeDelta = new Vector2(440, 520);
             var vlg = column.GetComponent<VerticalLayoutGroup>();
             vlg.spacing = 22;
-            vlg.childAlignment = TextAnchor.MiddleCenter;
+            vlg.childAlignment = TextAnchor.MiddleLeft;
             vlg.childControlWidth = true;
             vlg.childControlHeight = true;
             vlg.childForceExpandWidth = true;
@@ -188,8 +171,8 @@ namespace RunLight.UI
 
             CreateMenuButton(column.transform, "開始遊戲", OnStart);
             _continueButton = CreateMenuButton(column.transform, "繼續遊戲", OnContinue);
-            CreateMenuButton(column.transform, "設定", () => Show(_settingsPanel, true));
             CreateMenuButton(column.transform, "離開遊戲", OnQuit);
+            CreateMenuButton(column.transform, "設定", () => Show(_settingsPanel, true));
 
             // ---- 版本字 ----
             var ver = CreateText("Version", canvasGo.transform, $"腦迴路 · v{Application.version}", 24,

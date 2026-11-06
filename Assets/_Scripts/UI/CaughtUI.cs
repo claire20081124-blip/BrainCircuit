@@ -25,6 +25,11 @@ namespace RunLight.UI
         [Header("選B動畫（選填，有素材時拖入）")]
         [SerializeField] private UnityEngine.UI.RawImage choiceAnimImage;
 
+        [Header("被逮捕 素材（選填，有圖時用圖）")]
+        [SerializeField] private Sprite caughtTitleSprite; // 你被逮捕了 PNG
+        [SerializeField] private Sprite choiceASprite;     // 反抗 按鈕 PNG
+        [SerializeField] private Sprite choiceBSprite;     // 順從 按鈕 PNG
+
         [Header("Game Over 素材（選填，有圖時用圖）")]
         [SerializeField] private Sprite gameOverSprite;   // 意識消散 PNG
         [SerializeField] private Sprite restartSprite;    // 重新開始按鈕 PNG
@@ -76,7 +81,8 @@ namespace RunLight.UI
                 yield return new WaitForSeconds(animationDelay);
             }
 
-            // 不淡黑，選項直接疊在畫面上
+            yield return Fade(_overlay, 0f, 1f, fadeToBlack);
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible   = true;
 
@@ -265,27 +271,37 @@ namespace RunLight.UI
             _choiceGroup.blocksRaycasts = false;
             choiceGo.SetActive(false);
 
-            // 標題
-            MakeLabel(choiceGo.transform, font, "你被逮捕了",
-                60, Color.white, new Vector2(0.5f, 0.62f), new Vector2(800f, 80f));
+            // 標題（有圖用圖，沒圖用文字）
+            if (caughtTitleSprite != null)
+                MakeSpriteImage(choiceGo.transform, caughtTitleSprite,
+                    new Vector2(0.5f, 0.65f), new Vector2(820f, 160f));
+            else
+            {
+                MakeLabel(choiceGo.transform, font, "你被逮捕了",
+                    72, Color.white, new Vector2(0.5f, 0.65f), new Vector2(900f, 90f));
+                MakeLabel(choiceGo.transform, font, "YOU ARE CAPTURED",
+                    22, new Color(1f, 1f, 1f, 0.45f), new Vector2(0.5f, 0.56f), new Vector2(600f, 32f));
+            }
 
-            // 副標
-            MakeLabel(choiceGo.transform, font, "你的意識將如何延續？",
-                28, new Color(1f, 1f, 1f, 0.65f), new Vector2(0.5f, 0.53f), new Vector2(700f, 40f));
+            // 按鈕 A（有圖用圖）
+            if (choiceASprite != null)
+                MakeSpriteButton(choiceGo.transform, choiceASprite,
+                    new Vector2(0.5f, 0.38f), new Vector2(-240f, 0f), new Vector2(380f, 110f), ChoiceA);
+            else
+                MakeButton(choiceGo.transform, font,
+                    "反抗", "試圖掙扎",
+                    new Vector2(0.5f, 0.38f), new Vector2(-220f, 0f),
+                    new Color(0.55f, 0.1f, 0.1f, 0.9f), ChoiceA);
 
-            // 按鈕 A
-            MakeButton(choiceGo.transform, font,
-                "反抗", "智力歸零・留在原地",
-                new Vector2(0.5f, 0.38f), new Vector2(-210f, 0f),
-                new Color(0.55f, 0.1f, 0.1f, 0.9f),
-                ChoiceA);
-
-            // 按鈕 B
-            MakeButton(choiceGo.transform, font,
-                "順從", "智力保留・回到初始房間",
-                new Vector2(0.5f, 0.38f), new Vector2(210f, 0f),
-                new Color(0.1f, 0.3f, 0.6f, 0.9f),
-                ChoiceB);
+            // 按鈕 B（有圖用圖）
+            if (choiceBSprite != null)
+                MakeSpriteButton(choiceGo.transform, choiceBSprite,
+                    new Vector2(0.5f, 0.38f), new Vector2(240f, 0f), new Vector2(380f, 110f), ChoiceB);
+            else
+                MakeButton(choiceGo.transform, font,
+                    "順從", "放棄抵抗",
+                    new Vector2(0.5f, 0.38f), new Vector2(220f, 0f),
+                    new Color(0.1f, 0.3f, 0.6f, 0.9f), ChoiceB);
 
             // Game Over 面板
             var goPanel = new GameObject("GameOverPanel");
@@ -301,34 +317,35 @@ namespace RunLight.UI
             // 意識消散 圖 / 文字
             if (gameOverSprite != null)
                 MakeSpriteImage(goPanel.transform, gameOverSprite,
-                    new Vector2(0.5f, 0.65f), new Vector2(600f, 180f));
+                    new Vector2(0.5f, 0.70f), new Vector2(700f, 210f));
             else
+            {
                 MakeLabel(goPanel.transform, font, "意識消散",
-                    72, new Color(0.9f, 0.2f, 0.2f), new Vector2(0.5f, 0.65f), new Vector2(800f, 90f));
-
-            MakeLabel(goPanel.transform, font, "你的自我已被系統完全覆寫",
-                24, new Color(1f, 1f, 1f, 0.55f), new Vector2(0.5f, 0.50f), new Vector2(700f, 36f));
+                    88, Color.white, new Vector2(0.5f, 0.72f), new Vector2(900f, 110f));
+                MakeLabel(goPanel.transform, font, "GAME  OVER",
+                    20, new Color(1f, 1f, 1f, 0.40f), new Vector2(0.5f, 0.63f), new Vector2(500f, 28f));
+            }
 
             // 重新開始按鈕
             if (restartSprite != null)
                 MakeSpriteButton(goPanel.transform, restartSprite,
-                    new Vector2(0.5f, 0.30f), new Vector2(-220f, 0f), new Vector2(380f, 100f), LoadFromSave);
+                    new Vector2(0.5f, 0.30f), new Vector2(-300f, 0f), new Vector2(420f, 115f), LoadFromSave);
             else
                 MakeButton(goPanel.transform, font,
                     "重新開始", "",
-                    new Vector2(0.5f, 0.30f), new Vector2(-220f, 0f),
+                    new Vector2(0.5f, 0.30f), new Vector2(-300f, 0f),
                     new Color(0.4f, 0.15f, 0.15f, 0.9f),
                     LoadFromSave);
 
             // 主選單按鈕
             if (mainMenuSprite != null)
                 MakeSpriteButton(goPanel.transform, mainMenuSprite,
-                    new Vector2(0.5f, 0.30f), new Vector2(220f, 0f), new Vector2(380f, 100f),
+                    new Vector2(0.5f, 0.30f), new Vector2(300f, 0f), new Vector2(420f, 115f),
                     () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
             else
                 MakeButton(goPanel.transform, font,
                     "主選單", "",
-                    new Vector2(0.5f, 0.30f), new Vector2(220f, 0f),
+                    new Vector2(0.5f, 0.30f), new Vector2(300f, 0f),
                     new Color(0.15f, 0.15f, 0.15f, 0.9f),
                     () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
         }

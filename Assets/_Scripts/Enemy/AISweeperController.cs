@@ -82,6 +82,7 @@ namespace RunLight.Enemy
 
         private static bool PlayerIsHiding()
         {
+            if (RunLight.Interaction.BoxHideSystem.IsHiding) return true;
             foreach (var hs in FindObjectsByType<RunLight.Interaction.HidingSpot>(FindObjectsSortMode.None))
                 if (hs.IsHiding) return true;
             return false;
