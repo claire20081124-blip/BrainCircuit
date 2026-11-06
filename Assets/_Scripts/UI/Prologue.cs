@@ -200,9 +200,10 @@ namespace RunLight.UI
         // ── 影片播放 ──────────────────────────────────────────────────────────
         private IEnumerator PlayVideo()
         {
-            int rtW = Mathf.Min((int)openingVideo.width,  1920);
-            int rtH = Mathf.Min((int)openingVideo.height, 1080);
-            var rt = new RenderTexture(rtW, rtH, 0);
+            int rtW = openingVideo.width  > 0 ? Mathf.Min((int)openingVideo.width,  1920) : 1920;
+            int rtH = openingVideo.height > 0 ? Mathf.Min((int)openingVideo.height, 1080) : 1080;
+            var rt = new RenderTexture(rtW, rtH, 0, RenderTextureFormat.ARGB32);
+            rt.Create();
             _videoDisplay.texture = rt;
             _videoDisplay.gameObject.SetActive(true);
 
@@ -212,10 +213,24 @@ namespace RunLight.UI
             vp.renderMode      = VideoRenderMode.RenderTexture;
             vp.targetTexture   = rt;
             vp.audioOutputMode = VideoAudioOutputMode.Direct;
-            vp.skipOnDrop      = true;  // 跟不上時跳幀，避免卡頓
+            vp.skipOnDrop      = false;
+
+            bool prepared = false;
+            vp.prepareCompleted += _ => prepared = true;
             vp.Prepare();
 
-            yield return new WaitUntil(() => vp.isPrepared);
+            yield return new WaitUntil(() => prepared);
+
+            // 更新 RT 尺寸以符合實際影片
+            if ((int)vp.width != rtW || (int)vp.height != rtH)
+            {
+                rt.Release();
+                rt.width  = (int)vp.width;
+                rt.height = (int)vp.height;
+                rt.Create();
+                vp.targetTexture      = rt;
+                _videoDisplay.texture = rt;
+            }
 
             vp.playbackSpeed = playbackSpeed;
             vp.Play();
@@ -283,23 +298,19 @@ namespace RunLight.UI
             _phase = Phase.Done;
             yield return FadeOverlay(0f, 1f, sceneTransitionFade);
             yield return new WaitForSeconds(sceneTransitionHold);
-
-            if (!Application.CanStreamedLevelBeLoaded(nextSceneName))
-            {
-                Debug.LogWarning($"[Prologue] 場景「{nextSceneName}」不在 Build Settings，請先加入。");
-                yield break;
-            }
-            SceneManager.LoadScene(nextSceneName);
+            LoadNext();
         }
 
         private void LoadNext()
         {
-            if (!Application.CanStreamedLevelBeLoaded(nextSceneName))
+            if (Application.CanStreamedLevelBeLoaded(nextSceneName))
+            {
+                SceneManager.LoadScene(nextSceneName);
+            }
+            else
             {
                 Debug.LogWarning($"[Prologue] 場景「{nextSceneName}」不在 Build Settings，請先加入。");
-                return;
             }
-            SceneManager.LoadScene(nextSceneName);
         }
 
         // ── 淡入 / 淡出 ───────────────────────────────────────────────────────

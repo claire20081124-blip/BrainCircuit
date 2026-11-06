@@ -28,6 +28,12 @@ namespace RunLight.Player
 
         private void Update()
         {
+            if (Interaction.BoxHideSystem.IsHiding)
+            {
+                transform.localPosition = Vector3.Lerp(transform.localPosition, _restPos, Time.deltaTime * 8f);
+                return;
+            }
+
             float h = Input.GetAxisRaw("Horizontal");
             float v = Input.GetAxisRaw("Vertical");
 

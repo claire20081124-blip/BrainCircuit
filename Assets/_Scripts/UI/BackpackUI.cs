@@ -82,6 +82,7 @@ namespace RunLight.UI
         {
             if (Input.GetKeyDown(KeyCode.Tab))
             {
+                if (Interaction.BoxHideSystem.IsHiding) return;
                 if (IsOpen) Close();
                 else        Open();
             }

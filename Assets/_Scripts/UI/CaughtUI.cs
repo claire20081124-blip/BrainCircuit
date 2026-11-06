@@ -176,16 +176,11 @@ namespace RunLight.UI
             yield return Fade(_choiceGroup, 1f, 0f, 0.3f);
             _choiceGroup.gameObject.SetActive(false);
 
+            // 淡黑
+            yield return Fade(_overlay, _overlay.alpha, 1f, fadeToBlack);
+
             if (teleport)
             {
-                // 播放動畫/GIF（有素材時 choiceAnimImage 顯示，否則只是等待）
-                if (choiceAnimImage != null) choiceAnimImage.gameObject.SetActive(true);
-                yield return new WaitForSeconds(choiceAnimDelay);
-                if (choiceAnimImage != null) choiceAnimImage.gameObject.SetActive(false);
-
-                // 淡黑傳送
-                yield return Fade(_overlay, 0f, 1f, fadeToBlack);
-
                 if (_fpc != null && startPoint != null)
                 {
                     var cc = _fpc.GetComponent<CharacterController>();
@@ -197,14 +192,10 @@ namespace RunLight.UI
                 {
                     UnityEngine.Debug.LogWarning("[CaughtUI] Start Point 未設定，無法傳送");
                 }
+            }
 
-                // 淡出
-                yield return Fade(_overlay, 1f, 0f, resumeFade);
-            }
-            else
-            {
-                yield return Fade(_overlay, _overlay.alpha, 0f, resumeFade);
-            }
+            // 淡出
+            yield return Fade(_overlay, 1f, 0f, resumeFade);
 
             if (_fpc != null) _fpc.MovementLocked = false;
             Cursor.lockState = CursorLockMode.Locked;
@@ -274,7 +265,7 @@ namespace RunLight.UI
             // 標題（有圖用圖，沒圖用文字）
             if (caughtTitleSprite != null)
                 MakeSpriteImage(choiceGo.transform, caughtTitleSprite,
-                    new Vector2(0.5f, 0.65f), new Vector2(820f, 160f));
+                    new Vector2(0.5f, 0.65f), new Vector2(1050f, 210f));
             else
             {
                 MakeLabel(choiceGo.transform, font, "你被逮捕了",
@@ -291,7 +282,7 @@ namespace RunLight.UI
                 MakeButton(choiceGo.transform, font,
                     "反抗", "試圖掙扎",
                     new Vector2(0.5f, 0.38f), new Vector2(-220f, 0f),
-                    new Color(0.55f, 0.1f, 0.1f, 0.9f), ChoiceA);
+                    Color.clear, ChoiceA);
 
             // 按鈕 B（有圖用圖）
             if (choiceBSprite != null)
@@ -301,7 +292,7 @@ namespace RunLight.UI
                 MakeButton(choiceGo.transform, font,
                     "順從", "放棄抵抗",
                     new Vector2(0.5f, 0.38f), new Vector2(220f, 0f),
-                    new Color(0.1f, 0.3f, 0.6f, 0.9f), ChoiceB);
+                    Color.clear, ChoiceB);
 
             // Game Over 面板
             var goPanel = new GameObject("GameOverPanel");
@@ -317,35 +308,35 @@ namespace RunLight.UI
             // 意識消散 圖 / 文字
             if (gameOverSprite != null)
                 MakeSpriteImage(goPanel.transform, gameOverSprite,
-                    new Vector2(0.5f, 0.70f), new Vector2(700f, 210f));
+                    new Vector2(0.5f, 0.68f), new Vector2(700f, 210f));
             else
             {
                 MakeLabel(goPanel.transform, font, "意識消散",
-                    88, Color.white, new Vector2(0.5f, 0.72f), new Vector2(900f, 110f));
+                    88, Color.white, new Vector2(0.5f, 0.78f), new Vector2(900f, 110f));
                 MakeLabel(goPanel.transform, font, "GAME  OVER",
-                    20, new Color(1f, 1f, 1f, 0.40f), new Vector2(0.5f, 0.63f), new Vector2(500f, 28f));
+                    20, new Color(1f, 1f, 1f, 0.40f), new Vector2(0.5f, 0.69f), new Vector2(500f, 28f));
             }
 
             // 重新開始按鈕
             if (restartSprite != null)
                 MakeSpriteButton(goPanel.transform, restartSprite,
-                    new Vector2(0.5f, 0.30f), new Vector2(-300f, 0f), new Vector2(420f, 115f), LoadFromSave);
+                    new Vector2(0.5f, 0.28f), new Vector2(-340f, 0f), new Vector2(420f, 115f), LoadFromSave);
             else
                 MakeButton(goPanel.transform, font,
                     "重新開始", "",
-                    new Vector2(0.5f, 0.30f), new Vector2(-300f, 0f),
+                    new Vector2(0.5f, 0.28f), new Vector2(-340f, 0f),
                     new Color(0.4f, 0.15f, 0.15f, 0.9f),
                     LoadFromSave);
 
             // 主選單按鈕
             if (mainMenuSprite != null)
                 MakeSpriteButton(goPanel.transform, mainMenuSprite,
-                    new Vector2(0.5f, 0.30f), new Vector2(300f, 0f), new Vector2(420f, 115f),
+                    new Vector2(0.5f, 0.28f), new Vector2(340f, 0f), new Vector2(420f, 115f),
                     () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
             else
                 MakeButton(goPanel.transform, font,
                     "主選單", "",
-                    new Vector2(0.5f, 0.30f), new Vector2(300f, 0f),
+                    new Vector2(0.5f, 0.28f), new Vector2(340f, 0f),
                     new Color(0.15f, 0.15f, 0.15f, 0.9f),
                     () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
         }
@@ -373,12 +364,20 @@ namespace RunLight.UI
         {
             var go = new GameObject("Btn", typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = bgColor;
-            go.GetComponent<Button>().onClick.AddListener(onClick);
+            var img = go.GetComponent<Image>();
+            img.color = bgColor;
+            var btn = go.GetComponent<Button>();
+            btn.onClick.AddListener(onClick);
+            var cb = btn.colors;
+            cb.normalColor      = bgColor;
+            cb.highlightedColor = new Color(1f, 1f, 1f, 0.12f);
+            cb.pressedColor     = new Color(1f, 1f, 1f, 0.20f);
+            cb.selectedColor    = bgColor;
+            btn.colors = cb;
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = anchor;
             rt.anchoredPosition = offset;
-            rt.sizeDelta = new Vector2(360f, 110f);
+            rt.sizeDelta = new Vector2(380f, 110f);
 
             // 主標題（大字）
             var titleGo = new GameObject("Title", typeof(Text));

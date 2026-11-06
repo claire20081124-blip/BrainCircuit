@@ -60,6 +60,7 @@ namespace RunLight.UI
 
         private void TogglePause()
         {
+            if (Interaction.BoxHideSystem.IsHiding) return;
             if (IsPaused) Resume(); else Pause();
         }
 

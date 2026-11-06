@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using RunLight.Player;
@@ -18,10 +19,26 @@ namespace RunLight.Interaction
         [Tooltip("開局是否自動給玩家紙箱（不需放置物件時勾）")]
         [SerializeField] private bool giveBoxOnStart = false;
 
+        [Tooltip("玩家手部模型（躲藏時隱藏）")]
+        [SerializeField] private GameObject handModel;
+
+        [Header("音效")]
+        [SerializeField] private AudioClip enterSound;
+        [SerializeField] private AudioClip exitSound;
+        [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
+
+        [Tooltip("躲藏時相機下移量（正值往下）")]
+        [SerializeField] private float crouchCameraOffset = 1.2f;
+        [SerializeField] private float crouchSpeed = 4f;
+
         private bool _hasBox;
         private bool _isHiding;
         private GameObject _overlay;
         private FirstPersonController _fpc;
+        private Transform _camTransform;
+        private float _camStandY;
+        private Coroutine _crouchRoutine;
+        private AudioSource _audio;
 
         private void Awake()
         {
@@ -36,6 +53,16 @@ namespace RunLight.Interaction
             var go = GameObject.FindWithTag("Player");
             if (go != null) _fpc = go.GetComponent<FirstPersonController>();
             if (_fpc == null) _fpc = FindObjectOfType<FirstPersonController>();
+
+            _audio = gameObject.AddComponent<AudioSource>();
+            _audio.spatialBlend = 0f;
+            _audio.playOnAwake  = false;
+            _audio.volume       = soundVolume;
+
+            // 找相機
+            var cam = Camera.main;
+            if (cam != null) _camTransform = cam.transform;
+            if (_camTransform != null) _camStandY = _camTransform.localPosition.y;
 
             BuildOverlay();
         }
@@ -57,15 +84,42 @@ namespace RunLight.Interaction
         private void EnterBox()
         {
             _isHiding = true;
-            if (_fpc != null) _fpc.MovementLocked = true;
+            if (_fpc != null) _fpc.MoveOnlyLocked = true;
+            if (handModel != null) handModel.SetActive(false);
             _overlay?.SetActive(true);
+            SetCrouchTarget(_camStandY - crouchCameraOffset);
+            if (enterSound != null) _audio.PlayOneShot(enterSound, soundVolume);
         }
 
         private void ExitBox()
         {
             _isHiding = false;
-            if (_fpc != null) _fpc.MovementLocked = false;
+            if (_fpc != null) _fpc.MoveOnlyLocked = false;
+            if (handModel != null) handModel.SetActive(true);
             _overlay?.SetActive(false);
+            SetCrouchTarget(_camStandY);
+            if (exitSound != null) _audio.PlayOneShot(exitSound, soundVolume);
+        }
+
+        private void SetCrouchTarget(float targetY)
+        {
+            if (_camTransform == null) return;
+            if (_crouchRoutine != null) StopCoroutine(_crouchRoutine);
+            _crouchRoutine = StartCoroutine(SmoothCamY(targetY));
+        }
+
+        private IEnumerator SmoothCamY(float targetY)
+        {
+            while (Mathf.Abs(_camTransform.localPosition.y - targetY) > 0.001f)
+            {
+                var p = _camTransform.localPosition;
+                p.y = Mathf.Lerp(p.y, targetY, Time.deltaTime * crouchSpeed);
+                _camTransform.localPosition = p;
+                yield return null;
+            }
+            var final = _camTransform.localPosition;
+            final.y = targetY;
+            _camTransform.localPosition = final;
         }
 
         // 外部呼叫：讓紙箱進背包（WorldPickup 拾取時呼叫）
@@ -74,44 +128,54 @@ namespace RunLight.Interaction
         // ── 紙箱視角 UI ───────────────────────────────────────────
         private void BuildOverlay()
         {
-            var canvasGo = new GameObject("BoxOverlay",
-                typeof(Canvas), typeof(CanvasScaler));
+            var canvasGo = new GameObject("BoxOverlay", typeof(Canvas));
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 40;
-            var scaler = canvasGo.GetComponent<CanvasScaler>();
-            scaler.uiScaleMode         = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.matchWidthOrHeight  = 0.5f;
 
-            var black = new Color(0.05f, 0.03f, 0.02f, 1f); // 深棕黑（紙箱內壁）
-
-            // 上方遮罩
-            MakePanel(canvasGo.transform, black, 0f, 0.58f, 1f, 1f);
-            // 下方遮罩
-            MakePanel(canvasGo.transform, black, 0f, 0f,    1f, 0.28f);
-            // 左側遮罩
-            MakePanel(canvasGo.transform, black, 0f,   0.28f, 0.22f, 0.58f);
-            // 中間隔板（兩洞之間）
-            MakePanel(canvasGo.transform, black, 0.42f, 0.28f, 0.58f, 0.58f);
-            // 右側遮罩
-            MakePanel(canvasGo.transform, black, 0.78f, 0.28f, 1f, 0.58f);
+            var rawGo = new GameObject("Mask", typeof(UnityEngine.UI.RawImage));
+            rawGo.transform.SetParent(canvasGo.transform, false);
+            var ri = rawGo.GetComponent<UnityEngine.UI.RawImage>();
+            ri.texture = BuildBoxMaskTexture();
+            var rt = rawGo.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
 
             _overlay = canvasGo;
             _overlay.SetActive(false);
         }
 
-        private static void MakePanel(Transform parent, Color color,
-            float xMin, float yMin, float xMax, float yMax)
+        private static Texture2D BuildBoxMaskTexture()
         {
-            var go = new GameObject("Panel", typeof(Image));
-            go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = color;
-            var rt = go.GetComponent<RectTransform>();
-            rt.anchorMin = new Vector2(xMin, yMin);
-            rt.anchorMax = new Vector2(xMax, yMax);
-            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            const int tw = 480, th = 270; // 1/4 解析度，省效能
+            var tex = new Texture2D(tw, th, TextureFormat.RGBA32, false);
+            var pixels = new Color32[tw * th];
+
+            // 兩個圓洞中心（1920×1080 座標系）
+            const float lx = 620f, rx = 1300f, cy = 540f;
+            const float holeR = 230f; // 洞半徑
+            const byte  bgA   = 255;  // 完全不透明
+
+            for (int y = 0; y < th; y++)
+            for (int x = 0; x < tw; x++)
+            {
+                float px = (float)x / tw * 1920f;
+                float py = (float)y / th * 1080f;
+                float d1 = Mathf.Sqrt((px - lx) * (px - lx) + (py - cy) * (py - cy));
+                float d2 = Mathf.Sqrt((px - rx) * (px - rx) + (py - cy) * (py - cy));
+                float d  = Mathf.Min(d1, d2);
+
+                byte a = d < holeR ? (byte)0 : bgA;
+
+                pixels[y * tw + x] = new Color32(8, 5, 4, a);
+            }
+
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            tex.filterMode = FilterMode.Point;
+            return tex;
         }
 
         private void OnGUI()

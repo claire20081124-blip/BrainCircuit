@@ -393,6 +393,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1458772456}
   - component: {fileID: 1458772455}
+  - component: {fileID: 1458772457}
   m_Layer: 0
   m_Name: MainMenu
   m_TagString: Untagged
@@ -415,6 +416,7 @@ MonoBehaviour:
   gameSceneName: 2
   newGameSlot: 0
   backgroundSprite: {fileID: 21300000, guid: 4cfeaee055ba01e4ea04bdec462a01fc, type: 3}
+  keyBindingSprite: {fileID: 21300000, guid: 29cb3224589c71440a8d125bf84bb3e3, type: 3}
   overlayAlpha: 0.43
   gameTitle: "\u8166\u8FF4\u8DEF"
   titleFontSize: 150
@@ -438,6 +440,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1458772457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1458772454}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 659bbd883fc8de34d8fce0a7715b46aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.UIAudioManager
+  clickSound: {fileID: 8300000, guid: bc8b2bbbc153d2a49bd151abb8c93a92, type: 3}
+  volume: 1
 --- !u!1 &2141111223
 GameObject:
   m_ObjectHideFlags: 0

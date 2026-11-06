@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using RunLight.Core;
 
@@ -36,7 +37,6 @@ namespace RunLight.Interaction
         private Quaternion  _openRot;
         private bool        _isOpen;
         private bool        _saved;
-        private float       _autoCloseTimer;
         private Transform   _player;
         private AudioSource _audio;
 
@@ -73,13 +73,6 @@ namespace RunLight.Interaction
                 else Open();
             }
 
-            // 自動關門倒數
-            if (_isOpen && autoCloseDelay > 0f)
-            {
-                _autoCloseTimer -= Time.deltaTime;
-                if (_autoCloseTimer <= 0f) Close();
-            }
-
             // 平滑旋轉
             transform.localRotation = Quaternion.Slerp(
                 transform.localRotation,
@@ -97,8 +90,12 @@ namespace RunLight.Interaction
             _openRot = _closedRot * Quaternion.Euler(0f, angle, 0f);
 
             _isOpen = true;
-            _autoCloseTimer = autoCloseDelay;
             if (doorBlocker != null) doorBlocker.enabled = false;
+            if (autoCloseDelay > 0f)
+            {
+                StopAllCoroutines();
+                StartCoroutine(AutoCloseRoutine());
+            }
             if (openSound != null) { _audio.clip = openSound; _audio.Play(); }
 
             if (!_saved)
@@ -107,6 +104,12 @@ namespace RunLight.Interaction
                 if (GameManager.HasInstance)
                     GameManager.Instance.SaveGame();
             }
+        }
+
+        private IEnumerator AutoCloseRoutine()
+        {
+            yield return new WaitForSeconds(autoCloseDelay);
+            if (_isOpen) Close();
         }
 
         private void Close()

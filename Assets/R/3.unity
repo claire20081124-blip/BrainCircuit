@@ -3497,6 +3497,7 @@ MonoBehaviour:
   soundVolume: 1
   flipSide: 0
   interactRange: 5
+  autoCloseDelay: 3
   doorBlocker: {fileID: 1295928076}
 --- !u!1 &364012480
 GameObject:
@@ -3966,6 +3967,66 @@ Transform:
   m_Children: []
   m_Father: {fileID: 214459955}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &389395542
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -181.6272
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -5.3
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -130.21
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071067
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      propertyPath: m_Name
+      value: "\u7D19\u7BB1"
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 804147214}
+  m_SourcePrefab: {fileID: 100100000, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
 --- !u!1 &412313275
 GameObject:
   m_ObjectHideFlags: 0
@@ -4680,8 +4741,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 1331536933}
 --- !u!1 &534188880
 GameObject:
@@ -4766,8 +4828,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 1383089504}
 --- !u!1 &547459461
 GameObject:
@@ -6305,6 +6368,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: aace7987fd3d41540a02fa8a42d1aa56, type: 3}
   m_PrefabInstance: {fileID: 1868551033}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &804147213 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 01d5e08d866154b4bab81d2b55eb1392, type: 3}
+  m_PrefabInstance: {fileID: 389395542}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &804147214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 804147213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4141e4d89237a8a4ca76e28a9e791e48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunLight.Interaction.BoxPickup
+  interactRange: 5
+  promptText: "\u6309 E \u64BF\u8D77"
 --- !u!4 &825339523 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d3a561f2651b7f1488d47eb93e35aebc, type: 3}
@@ -8468,8 +8550,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 282492143}
 --- !u!1 &1208662054
 GameObject:
@@ -10103,8 +10186,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 3
   doorBlocker: {fileID: 1580409694}
 --- !u!1 &1367300515
 GameObject:
@@ -12193,6 +12277,7 @@ GameObject:
   - component: {fileID: 1657208443}
   - component: {fileID: 1657208441}
   - component: {fileID: 1657208442}
+  - component: {fileID: 1657208444}
   m_Layer: 0
   m_Name: player
   m_TagString: Player
@@ -12255,7 +12340,7 @@ Transform:
   m_GameObject: {fileID: 1657208437}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.014444139, z: -0, w: 0.9998957}
-  m_LocalPosition: {x: -131, y: -6.65, z: -185.1}
+  m_LocalPosition: {x: -130.9, y: -6.65, z: -184.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -12304,6 +12389,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 797ec4786ec279f4bbcff9d7b073d0b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.Player.PlayerSaveLoader
+--- !u!114 &1657208444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1657208437}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d2a425586b2c724b8f58117b05658b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RunLight.Interaction.BoxHideSystem
+  giveBoxOnStart: 0
+  handModel: {fileID: 317978396}
+  enterSound: {fileID: 8300000, guid: 69d6da7e449ff1649967fe68c3d60468, type: 3}
+  exitSound: {fileID: 8300000, guid: 69d6da7e449ff1649967fe68c3d60468, type: 3}
+  soundVolume: 1
+  crouchCameraOffset: 6
+  crouchSpeed: 4
 --- !u!1 &1665460752
 GameObject:
   m_ObjectHideFlags: 0
@@ -12838,8 +12942,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 983976038}
 --- !u!1 &1732363375
 GameObject:
@@ -13247,8 +13352,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 939563723}
 --- !u!1001 &1769143205
 PrefabInstance:
@@ -13595,8 +13701,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 716368487}
 --- !u!1 &1790604327
 GameObject:
@@ -14314,7 +14421,7 @@ Transform:
   m_GameObject: {fileID: 1838919261}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -138, y: 5.67, z: -183.51}
+  m_LocalPosition: {x: -138, y: 6.75, z: -183.51}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -14833,8 +14940,9 @@ MonoBehaviour:
   openSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   closeSound: {fileID: 8300000, guid: db1d2efa165885b48b551f513626cebf, type: 3}
   soundVolume: 1
-  flipSide: 0
+  flipSide: 1
   interactRange: 5
+  autoCloseDelay: 2
   doorBlocker: {fileID: 1477181870}
 --- !u!4 &1877890389 stripped
 Transform:
@@ -16573,3 +16681,4 @@ SceneRoots:
   - {fileID: 1562384536}
   - {fileID: 782860278}
   - {fileID: 289688543}
+  - {fileID: 389395542}

@@ -49,11 +49,11 @@ namespace RunLight.Player
 
         private void Update()
         {
-            if (MovementLocked) return;
-
-            Look();
-            Move();
+            if (!MovementLocked) Look();
+            if (!MovementLocked && !MoveOnlyLocked) Move();
         }
+
+        public bool MoveOnlyLocked { get; set; }
 
         private void ToggleCursor()
         {

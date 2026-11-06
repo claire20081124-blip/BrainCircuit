@@ -30,6 +30,9 @@ namespace RunLight.UI
         [Tooltip("主選單背景圖（Sprite）；留空則使用純色背景")]
         [SerializeField] private Sprite backgroundSprite;
 
+        [Tooltip("設定面板的鍵位說明圖；有圖時取代文字清單")]
+        [SerializeField] private Sprite keyBindingSprite;
+
         [Tooltip("背景圖上方的暗化遮罩透明度（0 = 不遮，1 = 全黑）；有背景圖時建議 0.3～0.5")]
         [SerializeField] [Range(0f, 1f)] private float overlayAlpha = 0.4f;
 
@@ -204,15 +207,39 @@ namespace RunLight.UI
                 PlayerPrefs.SetFloat(PrefMasterVolume, v);
             });
 
-            // 顯示
-            CreateToggle(content, "全螢幕", Screen.fullScreen, on => Screen.fullScreen = on);
+            // 鍵位說明
+            if (keyBindingSprite != null)
+            {
+                var imgGo = new GameObject("KeyBindingImg", typeof(UnityEngine.UI.Image), typeof(LayoutElement));
+                imgGo.transform.SetParent(content, false);
+                var img = imgGo.GetComponent<UnityEngine.UI.Image>();
+                img.sprite = keyBindingSprite;
+                img.preserveAspect = true;
+                var le = imgGo.GetComponent<LayoutElement>();
+                le.preferredWidth  = 340f;
+                le.preferredHeight = 340f;
+            }
+            else
+            {
+                var keysTitle = CreateText("KeysTitle", content, "鍵位說明", 22, new Color(0.95f, 0.83f, 0.55f), FontStyle.Bold);
+                keysTitle.rectTransform.sizeDelta = new Vector2(340f, 30f);
 
-            // 遊戲
-            CreateSlider(content, "文字速度", PlayerPrefs.GetFloat(PrefTextSpeed, 0.5f),
-                v => PlayerPrefs.SetFloat(PrefTextSpeed, v));
-
-            CreateToggle(content, "自動存檔", PlayerPrefs.GetInt(PrefAutoSave, 1) == 1,
-                on => PlayerPrefs.SetInt(PrefAutoSave, on ? 1 : 0));
+                string[] keyLines =
+                {
+                    "WASD　　移動",
+                    "E　　　　互動 / 確定",
+                    "Q　　　　取消確定",
+                    "Shift　　跳躍互動",
+                    "Space　　使用紙箱",
+                    "Tab　　　開啟背包",
+                    "Esc　　　暫停 / 繼續",
+                };
+                foreach (var line in keyLines)
+                {
+                    var lbl = CreateText("KeyLine", content, line, 19, new Color(0.85f, 0.87f, 0.92f), FontStyle.Normal);
+                    lbl.rectTransform.sizeDelta = new Vector2(340f, 26f);
+                }
+            }
 
             CreateMenuButton(content, "返回", () => { PlayerPrefs.Save(); Show(panel, false); }, 320);
             return panel;
