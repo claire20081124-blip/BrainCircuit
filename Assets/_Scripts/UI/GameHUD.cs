@@ -21,8 +21,9 @@ namespace RunLight.UI
         [Header("字體大小")]
         [SerializeField] private int fontSize = 36;
 
-        private Image  _brainFill;
-        private Text   _brainLabel;
+        private Image         _brainFill;
+        private RectTransform _fillClipRt;
+        private Text          _brainLabel;
         private Image  _dangerOverlay;
         private Font   _font;
 
@@ -64,14 +65,17 @@ namespace RunLight.UI
         private void UpdateBrainPower(int current, int max)
         {
             float pct = (float)current / max;
-            if (_brainFill  != null) _brainFill.fillAmount = pct;
+            if (_fillClipRt != null)
+                _fillClipRt.sizeDelta = new Vector2(barWidth * pct, _fillClipRt.sizeDelta.y);
+            else if (_brainFill != null)
+                _brainFill.fillAmount = pct;
             if (_brainLabel != null) _brainLabel.text = $"智力 {Mathf.RoundToInt(pct * 100)}%";
 
             _isDanger = pct <= 0.2f;
             if (_dangerOverlay != null && !_isDanger)
                 _dangerOverlay.color = new Color(0f, 0f, 0f, 0f);
 
-            if (_brainFill != null)
+            if (_brainFill != null && barFillSprite == null)
                 _brainFill.color = pct <= 0.2f
                     ? Color.Lerp(new Color(1f, 0.2f, 0.2f, 1f), FillColor, pct / 0.2f)
                     : FillColor;
@@ -92,36 +96,71 @@ namespace RunLight.UI
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight  = 0.5f;
 
-            // 背景條
-            var bgGo = new GameObject("BarBG", typeof(Image));
-            bgGo.transform.SetParent(canvasGo.transform, false);
-            var bgImg = bgGo.GetComponent<Image>();
-            bgImg.raycastTarget = false;
-            if (barBGSprite != null) { bgImg.sprite = barBGSprite; bgImg.type = Image.Type.Sliced; bgImg.color = Color.white; }
-            else bgImg.color = BarBgColor;
-            var bgRt = bgGo.GetComponent<RectTransform>();
-            bgRt.anchorMin        = new Vector2(0f, 1f);
-            bgRt.anchorMax        = new Vector2(0f, 1f);
-            bgRt.pivot            = new Vector2(0f, 1f);
-            bgRt.anchoredPosition = new Vector2(marginX, -marginY - fontSize - 6f);
-            bgRt.sizeDelta        = new Vector2(barWidth, barHeight);
+            // 容器
+            var barContainer = new GameObject("BarContainer", typeof(RectTransform));
+            barContainer.transform.SetParent(canvasGo.transform, false);
+            var containerRt = barContainer.GetComponent<RectTransform>();
+            containerRt.anchorMin        = new Vector2(0f, 1f);
+            containerRt.anchorMax        = new Vector2(0f, 1f);
+            containerRt.pivot            = new Vector2(0f, 1f);
+            containerRt.anchoredPosition = new Vector2(marginX, -marginY - fontSize - 6f);
+            containerRt.sizeDelta        = new Vector2(barWidth, barHeight);
 
-            // 填充
+            // 裁切容器（RectMask2D 控制填充寬度）
+            var clipGo = new GameObject("FillClip", typeof(RectTransform), typeof(UnityEngine.UI.RectMask2D));
+            clipGo.transform.SetParent(barContainer.transform, false);
+            var clipRt = clipGo.GetComponent<RectTransform>();
+            clipRt.anchorMin = new Vector2(0f, 0f);
+            clipRt.anchorMax = new Vector2(0f, 1f);
+            clipRt.pivot     = new Vector2(0f, 0.5f);
+            clipRt.offsetMin = clipRt.offsetMax = Vector2.zero;
+            clipRt.sizeDelta = new Vector2(barWidth * 0.5f, 0f);
+            _fillClipRt = clipRt;
+
+            // 填充圖（永遠全寬，由裁切容器決定顯示多少）
             var fillGo = new GameObject("BrainFill", typeof(Image));
-            fillGo.transform.SetParent(bgGo.transform, false);
+            fillGo.transform.SetParent(clipGo.transform, false);
             var fill = fillGo.GetComponent<Image>();
-            if (barFillSprite != null) { fill.sprite = barFillSprite; fill.color = Color.white; }
-            else fill.color = FillColor;
-            fill.type        = Image.Type.Filled;
-            fill.fillMethod  = Image.FillMethod.Horizontal;
-            fill.fillOrigin  = (int)Image.OriginHorizontal.Left;
-            fill.fillAmount  = 0.5f;
+            if (barFillSprite != null)
+            {
+                fill.sprite = barFillSprite;
+                fill.type   = Image.Type.Simple;
+                fill.color  = Color.white;
+                fill.preserveAspect = false;
+            }
+            else
+            {
+                fill.color      = FillColor;
+                fill.type       = Image.Type.Filled;
+                fill.fillMethod = Image.FillMethod.Horizontal;
+                fill.fillOrigin = (int)Image.OriginHorizontal.Left;
+                fill.fillAmount = 1f;
+            }
             fill.raycastTarget = false;
             var fillRt = fillGo.GetComponent<RectTransform>();
-            fillRt.anchorMin = Vector2.zero;
-            fillRt.anchorMax = Vector2.one;
+            fillRt.anchorMin = new Vector2(0f, 0f);
+            fillRt.anchorMax = new Vector2(0f, 1f);
+            fillRt.pivot     = new Vector2(0f, 0.5f);
             fillRt.offsetMin = fillRt.offsetMax = Vector2.zero;
+            fillRt.sizeDelta = new Vector2(barWidth, 0f);
             _brainFill = fill;
+
+            // 外框（後加 = 在上層，蓋住填充邊緣）
+            var bgGo = new GameObject("BarBG", typeof(Image));
+            bgGo.transform.SetParent(barContainer.transform, false);
+            var bgImg = bgGo.GetComponent<Image>();
+            bgImg.raycastTarget = false;
+            if (barBGSprite != null)
+            {
+                bgImg.sprite = barBGSprite;
+                bgImg.type   = Image.Type.Simple;
+                bgImg.color  = Color.white;
+                bgImg.preserveAspect = false;
+            }
+            else bgImg.color = BarBgColor;
+            var bgRt = bgGo.GetComponent<RectTransform>();
+            bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one;
+            bgRt.offsetMin = bgRt.offsetMax = Vector2.zero;
 
             // 標籤
             var lblGo = new GameObject("BrainLabel", typeof(Text));

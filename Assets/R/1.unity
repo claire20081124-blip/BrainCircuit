@@ -416,7 +416,7 @@ MonoBehaviour:
   gameSceneName: 2
   newGameSlot: 0
   backgroundSprite: {fileID: 21300000, guid: 4cfeaee055ba01e4ea04bdec462a01fc, type: 3}
-  keyBindingSprite: {fileID: 21300000, guid: 29cb3224589c71440a8d125bf84bb3e3, type: 3}
+  keyBindingSprite: {fileID: 21300000, guid: cc511125490219443a6d07e12ef2f88f, type: 3}
   overlayAlpha: 0.43
   gameTitle: "\u8166\u8FF4\u8DEF"
   titleFontSize: 150

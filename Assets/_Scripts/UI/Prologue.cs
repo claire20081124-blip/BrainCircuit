@@ -303,13 +303,13 @@ namespace RunLight.UI
 
         private void LoadNext()
         {
-            if (Application.CanStreamedLevelBeLoaded(nextSceneName))
+            try
             {
                 SceneManager.LoadScene(nextSceneName);
             }
-            else
+            catch (System.Exception e)
             {
-                Debug.LogWarning($"[Prologue] 場景「{nextSceneName}」不在 Build Settings，請先加入。");
+                Debug.LogError($"[Prologue] 無法載入場景「{nextSceneName}」：{e.Message}");
             }
         }
 

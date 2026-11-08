@@ -72,6 +72,7 @@ namespace RunLight.Interaction
             if (!_hasBox) return;
             if (BackpackUI.IsOpen) return;
             if (CodeDoorInteractable.IsInputting) return;
+            if (UI.CaughtUI.Instance != null && UI.CaughtUI.Instance.IsActive) return;
 
             if (Input.GetKeyDown(KeyCode.Space))
             {
@@ -181,6 +182,7 @@ namespace RunLight.Interaction
         private void OnGUI()
         {
             if (!_hasBox || _isHiding) return;
+            if (UI.CaughtUI.Instance != null && UI.CaughtUI.Instance.IsActive) return;
 
             var style = new GUIStyle(GUI.skin.label)
             {

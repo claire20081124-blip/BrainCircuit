@@ -55,6 +55,8 @@ namespace RunLight.UI
 
         // ---- 執行時建立的物件參考 ----
         private Button _continueButton;
+        private Button _startButton;
+        private Button _quitButton;
         private GameObject _settingsPanel;
 
         // 主題色
@@ -72,9 +74,23 @@ namespace RunLight.UI
             Rebuild();
         }
 
-        private void Start()
+        private System.Collections.IEnumerator Start()
         {
-            if (Application.isPlaying) RefreshContinueState();
+            if (!Application.isPlaying) yield break;
+            RefreshContinueState();
+            yield return null; // 跳過初始場景的 sceneLoaded 事件
+            SceneManager.sceneLoaded += OnSceneLoadedKillCanvas;
+        }
+
+        private void OnDestroy()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoadedKillCanvas;
+        }
+
+        private void OnSceneLoadedKillCanvas(Scene scene, LoadSceneMode mode)
+        {
+            var canvas = transform.Find("MainMenuCanvas");
+            if (canvas != null) Destroy(canvas.gameObject);
         }
 
         private void OnValidate()
@@ -172,9 +188,9 @@ namespace RunLight.UI
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
 
-            CreateMenuButton(column.transform, "開始遊戲", OnStart);
+            _startButton    = CreateMenuButton(column.transform, "開始遊戲", OnStart);
             _continueButton = CreateMenuButton(column.transform, "繼續遊戲", OnContinue);
-            CreateMenuButton(column.transform, "離開遊戲", OnQuit);
+            _quitButton     = CreateMenuButton(column.transform, "離開遊戲", OnQuit);
             CreateMenuButton(column.transform, "設定", () => Show(_settingsPanel, true));
 
             // ---- 版本字 ----
@@ -248,9 +264,23 @@ namespace RunLight.UI
         // ============================================================
         //  按鈕行為
         // ============================================================
+        private void LockButtons()
+        {
+            if (_startButton    != null) _startButton.interactable    = false;
+            if (_continueButton != null) _continueButton.interactable = false;
+            if (_quitButton     != null) _quitButton.interactable     = false;
+        }
+
+        private void HideCanvas()
+        {
+            var canvas = transform.Find("MainMenuCanvas");
+            if (canvas != null) canvas.gameObject.SetActive(false);
+        }
+
         private void OnStart()
         {
             if (!Application.isPlaying) return;
+            LockButtons();
             if (BGMManager.HasInstance) BGMManager.Instance.StopMusic(0.5f);
             GameManager.Instance.NewGame(newGameSlot);
             LoadScene(gameSceneName);
@@ -259,6 +289,7 @@ namespace RunLight.UI
         private void OnContinue()
         {
             if (!Application.isPlaying) return;
+            LockButtons();
             int slot = FindLatestSaveSlot();
             if (slot < 0)
             {
@@ -281,6 +312,7 @@ namespace RunLight.UI
 
         private void OnQuit()
         {
+            LockButtons();
             Debug.Log("[MainMenu] 離開遊戲。");
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
@@ -316,13 +348,13 @@ namespace RunLight.UI
 
         private void LoadScene(string sceneName)
         {
-            if (!Application.CanStreamedLevelBeLoaded(sceneName))
+            if (SceneFader.Instance != null)
+                SceneFader.Instance.FadeOutAndLoad(sceneName);
+            else
             {
-                Debug.LogWarning($"[MainMenu] 場景「{sceneName}」不在 Build Settings 中,無法載入。" +
-                                 "請到 File ▸ Build Settings 把該場景加入清單。");
-                return;
+                try { SceneManager.LoadScene(sceneName); }
+                catch (Exception e) { Debug.LogError($"[MainMenu] 無法載入「{sceneName}」：{e.Message}"); }
             }
-            SceneManager.LoadScene(sceneName);
         }
 
         // ============================================================

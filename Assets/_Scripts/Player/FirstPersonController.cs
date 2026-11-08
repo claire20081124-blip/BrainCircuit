@@ -27,7 +27,17 @@ namespace RunLight.Player
 
         public float StaminaRatio   => _stamina / maxStamina;
         public bool  IsSprinting    { get; private set; }
-        public bool  MovementLocked { get; set; }
+        private bool _movementLocked;
+        public bool  MovementLocked
+        {
+            get => _movementLocked;
+            set
+            {
+                _movementLocked = value;
+                Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
+                Cursor.visible   = value;
+            }
+        }
         public float Pitch          => _pitch;
 
         private CharacterController _cc;

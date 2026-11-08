@@ -38,6 +38,10 @@ namespace RunLight.UI
         [Header("起始位置（選B時傳送）")]
         [SerializeField] public Transform startPoint;
 
+        [Header("被抓視角")]
+        [Tooltip("清道夫視線高度（調到剛好看到臉為止）")]
+        [SerializeField] private float catcherLookHeight = 1.2f;
+
         private CanvasGroup           _overlay;
         private CanvasGroup           _choiceGroup;
         private CanvasGroup           _gameOverGroup;
@@ -83,9 +87,6 @@ namespace RunLight.UI
 
             yield return Fade(_overlay, 0f, 1f, fadeToBlack);
 
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
-
             _choiceGroup.gameObject.SetActive(true);
             _choiceGroup.blocksRaycasts = true;
             yield return Fade(_choiceGroup, 0f, 1f, textFadeIn);
@@ -96,13 +97,18 @@ namespace RunLight.UI
             _fpc = FindObjectOfType<FirstPersonController>();
             if (_fpc != null) _fpc.MovementLocked = true;
 
-            // 小動畫佔位
-            yield return new WaitForSeconds(animationDelay);
+            if (_fpc != null && _catcher != null)
+            {
+                float turnDur = Mathf.Min(animationDelay, 0.8f);
+                yield return TurnToFaceCatcher(turnDur);
+                yield return new WaitForSeconds(animationDelay - turnDur);
+            }
+            else
+            {
+                yield return new WaitForSeconds(animationDelay);
+            }
 
             yield return Fade(_overlay, 0f, 1f, fadeToBlack);
-
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
 
             _gameOverGroup.gameObject.SetActive(true);
             _gameOverGroup.blocksRaycasts = true;
@@ -149,13 +155,17 @@ namespace RunLight.UI
 
         private IEnumerator TurnToFaceCatcher(float duration)
         {
-            var dir = _catcher.transform.position - _fpc.transform.position;
-            dir.y = 0f;
-            if (dir.sqrMagnitude < 0.001f) yield break;
+            // 瞄準清道夫身體中心（root 位置往上加一點）
+            var catcherEyePos = _catcher.transform.position + Vector3.up * catcherLookHeight;
+            var camPos   = Camera.main != null ? Camera.main.transform.position : _fpc.transform.position;
+            var toTarget = catcherEyePos - camPos;
+            var flat     = new Vector3(toTarget.x, 0f, toTarget.z);
+            if (flat.sqrMagnitude < 0.001f) yield break;
 
-            float targetYaw  = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg;
-            float startYaw   = _fpc.transform.eulerAngles.y;
-            float startPitch = _fpc.Pitch;
+            float targetYaw   = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+            float targetPitch = -Mathf.Atan2(toTarget.y, flat.magnitude) * Mathf.Rad2Deg;
+            float startYaw    = _fpc.transform.eulerAngles.y;
+            float startPitch  = _fpc.Pitch;
 
             float t = 0f;
             while (t < duration)
@@ -163,11 +173,18 @@ namespace RunLight.UI
                 t += Time.deltaTime;
                 float ratio = Mathf.SmoothStep(0f, 1f, t / duration);
                 _fpc.ForceRotation(
-                    Mathf.LerpAngle(startYaw,   targetYaw, ratio),
-                    Mathf.Lerp(startPitch, 0f, ratio));
+                    Mathf.LerpAngle(startYaw,   targetYaw,   ratio),
+                    Mathf.Lerp    (startPitch, targetPitch, ratio));
                 yield return null;
             }
-            _fpc.ForceRotation(targetYaw, 0f);
+            _fpc.ForceRotation(targetYaw, targetPitch);
+        }
+
+        private void GameOverToMainMenu()
+        {
+            SaveSystem.Delete(GameManager.Instance.CurrentSlot);
+            Time.timeScale = 1f;
+            SceneFader.Instance.FadeOutAndLoad("1");
         }
 
         private IEnumerator Resume(bool teleport)
@@ -187,6 +204,7 @@ namespace RunLight.UI
                     if (cc != null) cc.enabled = false;
                     _fpc.transform.position = startPoint.position;
                     if (cc != null) cc.enabled = true;
+                    _fpc.ForceRotation(startPoint.eulerAngles.y, 0f);
                 }
                 else if (_fpc != null && startPoint == null)
                 {
@@ -198,8 +216,6 @@ namespace RunLight.UI
             yield return Fade(_overlay, 1f, 0f, resumeFade);
 
             if (_fpc != null) _fpc.MovementLocked = false;
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
             _active = false;
         }
 
@@ -274,24 +290,24 @@ namespace RunLight.UI
                     22, new Color(1f, 1f, 1f, 0.45f), new Vector2(0.5f, 0.56f), new Vector2(600f, 32f));
             }
 
-            // 按鈕 A（有圖用圖）
-            if (choiceASprite != null)
+            // 按鈕 A — 兩個都有圖才用圖，避免一大一小
+            if (choiceASprite != null && choiceBSprite != null)
                 MakeSpriteButton(choiceGo.transform, choiceASprite,
-                    new Vector2(0.5f, 0.38f), new Vector2(-240f, 0f), new Vector2(380f, 110f), ChoiceA);
+                    new Vector2(0.5f, 0.38f), new Vector2(-210f, 0f), new Vector2(280f, 130f), ChoiceA);
             else
                 MakeButton(choiceGo.transform, font,
                     "反抗", "試圖掙扎",
-                    new Vector2(0.5f, 0.38f), new Vector2(-220f, 0f),
+                    new Vector2(0.5f, 0.38f), new Vector2(-210f, 0f),
                     Color.clear, ChoiceA);
 
-            // 按鈕 B（有圖用圖）
-            if (choiceBSprite != null)
+            // 按鈕 B — 兩個都有圖才用圖，避免一大一小
+            if (choiceASprite != null && choiceBSprite != null)
                 MakeSpriteButton(choiceGo.transform, choiceBSprite,
-                    new Vector2(0.5f, 0.38f), new Vector2(240f, 0f), new Vector2(380f, 110f), ChoiceB);
+                    new Vector2(0.5f, 0.38f), new Vector2(210f, 0f), new Vector2(280f, 130f), ChoiceB);
             else
                 MakeButton(choiceGo.transform, font,
                     "順從", "放棄抵抗",
-                    new Vector2(0.5f, 0.38f), new Vector2(220f, 0f),
+                    new Vector2(0.5f, 0.38f), new Vector2(210f, 0f),
                     Color.clear, ChoiceB);
 
             // Game Over 面板
@@ -332,13 +348,13 @@ namespace RunLight.UI
             if (mainMenuSprite != null)
                 MakeSpriteButton(goPanel.transform, mainMenuSprite,
                     new Vector2(0.5f, 0.28f), new Vector2(340f, 0f), new Vector2(420f, 115f),
-                    () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
+                    GameOverToMainMenu);
             else
                 MakeButton(goPanel.transform, font,
                     "主選單", "",
                     new Vector2(0.5f, 0.28f), new Vector2(340f, 0f),
                     new Color(0.15f, 0.15f, 0.15f, 0.9f),
-                    () => { Time.timeScale = 1f; SceneManager.LoadScene(0); });
+                    GameOverToMainMenu);
         }
 
         private void MakeLabel(Transform parent, Font font, string text, int size,
@@ -365,6 +381,7 @@ namespace RunLight.UI
             var go = new GameObject("Btn", typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var img = go.GetComponent<Image>();
+            img.sprite = null;
             img.color = bgColor;
             var btn = go.GetComponent<Button>();
             btn.onClick.AddListener(onClick);
@@ -377,33 +394,44 @@ namespace RunLight.UI
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = anchor;
             rt.anchoredPosition = offset;
-            rt.sizeDelta = new Vector2(380f, 110f);
+            rt.sizeDelta = new Vector2(280f, 130f);
 
-            // 主標題（大字）
+            // 白色邊框：Outline 不依賴 Image alpha，確保兩個按鈕邊框完全一樣大
+            if (bgColor.a < 0.01f)
+            {
+                var ol = go.AddComponent<Outline>();
+                ol.effectColor    = new Color(1f, 1f, 1f, 0.9f);
+                ol.effectDistance = new Vector2(2f, -2f);
+                ol.useGraphicAlpha = false;
+            }
+
+            // 主標題（大字）— 中心往上偏
             var titleGo = new GameObject("Title", typeof(Text));
             titleGo.transform.SetParent(go.transform, false);
             var tt = titleGo.GetComponent<Text>();
-            tt.font = font; tt.text = title; tt.fontSize = 38;
+            tt.font = font; tt.text = title; tt.fontSize = 36;
             tt.fontStyle = FontStyle.Bold;
             tt.color = Color.white; tt.alignment = TextAnchor.MiddleCenter;
             tt.raycastTarget = false;
-            tt.horizontalOverflow = HorizontalWrapMode.Overflow;
+            tt.horizontalOverflow = HorizontalWrapMode.Wrap;
             titleGo.AddComponent<Outline>().effectColor = new Color(0, 0, 0, 0.8f);
             var trt = titleGo.GetComponent<RectTransform>();
-            trt.anchorMin = new Vector2(0f, 0.45f); trt.anchorMax = Vector2.one;
-            trt.offsetMin = trt.offsetMax = Vector2.zero;
+            trt.anchorMin = trt.anchorMax = new Vector2(0.5f, 0.5f);
+            trt.sizeDelta = new Vector2(240f, 48f);
+            trt.anchoredPosition = new Vector2(0f, 16f);
 
-            // 副說明（小字）
+            // 副說明（小字）— 中心往下偏
             var subGo = new GameObject("Sub", typeof(Text));
             subGo.transform.SetParent(go.transform, false);
             var st = subGo.GetComponent<Text>();
-            st.font = font; st.text = subtitle; st.fontSize = 17;
-            st.color = new Color(1f, 1f, 1f, 0.75f); st.alignment = TextAnchor.MiddleCenter;
+            st.font = font; st.text = subtitle; st.fontSize = 15;
+            st.color = new Color(1f, 1f, 1f, 0.65f); st.alignment = TextAnchor.MiddleCenter;
             st.raycastTarget = false;
-            st.horizontalOverflow = HorizontalWrapMode.Overflow;
+            st.horizontalOverflow = HorizontalWrapMode.Wrap;
             var srt = subGo.GetComponent<RectTransform>();
-            srt.anchorMin = Vector2.zero; srt.anchorMax = new Vector2(1f, 0.5f);
-            srt.offsetMin = srt.offsetMax = Vector2.zero;
+            srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 0.5f);
+            srt.sizeDelta = new Vector2(240f, 24f);
+            srt.anchoredPosition = new Vector2(0f, -18f);
         }
 
         private void MakeSpriteImage(Transform parent, Sprite sprite,
@@ -429,7 +457,6 @@ namespace RunLight.UI
             go.transform.SetParent(parent, false);
             var img = go.GetComponent<Image>();
             img.sprite = sprite;
-            img.preserveAspect = true;
             go.GetComponent<Button>().onClick.AddListener(onClick);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = anchor;

@@ -53,8 +53,6 @@ namespace RunLight.Interaction
         {
             IsReading = true;
             _ui?.SetActive(true);
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
             if (_fpc != null) _fpc.MovementLocked = true;
         }
 
@@ -62,8 +60,6 @@ namespace RunLight.Interaction
         {
             IsReading = false;
             _ui?.SetActive(false);
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
             if (_fpc != null) _fpc.MovementLocked = false;
         }
 

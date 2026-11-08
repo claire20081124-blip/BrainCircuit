@@ -15,6 +15,11 @@ namespace RunLight.UI
         [SerializeField] private float slotSize     = 120f;
         [SerializeField] private float slotPadding  = 12f;
 
+        [Header("按鈕素材（選填）")]
+        [SerializeField] private Sprite titleSprite;
+        [SerializeField] private Sprite inspectButtonSprite;
+        [SerializeField] private Sprite throwButtonSprite;
+
         private CanvasGroup           _bg;
         private Transform             _grid;
         private GameObject            _detailPanel;
@@ -145,8 +150,6 @@ namespace RunLight.UI
             _bg.gameObject.SetActive(true);
             RefreshGrid();
 
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
             if (_fpc != null) _fpc.MovementLocked = true;
         }
 
@@ -156,8 +159,6 @@ namespace RunLight.UI
             _bg.gameObject.SetActive(false);
             HideDetail();
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
             if (_fpc != null) _fpc.MovementLocked = false;
         }
 
@@ -367,13 +368,29 @@ namespace RunLight.UI
             MakeCloseButton(bgGo.transform);
 
             // 標題
-            var title = MakeTxt("Title", bgGo.transform, "背包", 38, AccentColor, FontStyle.Bold);
-            var trt = title.rectTransform;
-            trt.anchorMin = new Vector2(0f, 1f); trt.anchorMax = new Vector2(1f, 1f);
-            trt.pivot = new Vector2(0.5f, 1f);
-            trt.anchoredPosition = new Vector2(0f, -40f);
-            trt.sizeDelta = new Vector2(0f, 50f);
-            title.alignment = TextAnchor.MiddleCenter;
+            if (titleSprite != null)
+            {
+                var tImgGo = new GameObject("Title", typeof(Image));
+                tImgGo.transform.SetParent(bgGo.transform, false);
+                var tImg = tImgGo.GetComponent<Image>();
+                tImg.sprite = titleSprite;
+                tImg.preserveAspect = true;
+                var trt2 = tImgGo.GetComponent<RectTransform>();
+                trt2.anchorMin = new Vector2(0.5f, 1f); trt2.anchorMax = new Vector2(0.5f, 1f);
+                trt2.pivot = new Vector2(0.5f, 1f);
+                trt2.anchoredPosition = new Vector2(0f, -20f);
+                trt2.sizeDelta = new Vector2(300f, 60f);
+            }
+            else
+            {
+                var title = MakeTxt("Title", bgGo.transform, "背包", 38, AccentColor, FontStyle.Bold);
+                var trt = title.rectTransform;
+                trt.anchorMin = new Vector2(0f, 1f); trt.anchorMax = new Vector2(1f, 1f);
+                trt.pivot = new Vector2(0.5f, 1f);
+                trt.anchoredPosition = new Vector2(0f, -40f);
+                trt.sizeDelta = new Vector2(0f, 50f);
+                title.alignment = TextAnchor.MiddleCenter;
+            }
 
             // 格子容器
             var gridGo = new GameObject("Grid", typeof(GridLayoutGroup));
@@ -428,7 +445,7 @@ namespace RunLight.UI
             _detailName.alignment = TextAnchor.UpperLeft;
             _detailName.horizontalOverflow = HorizontalWrapMode.Wrap;
 
-            _detailDesc = MakeTxt("DetailDesc", _detailPanel.transform, "", 20,
+            _detailDesc = MakeTxt("DetailDesc", _detailPanel.transform, "", 26,
                 new Color(1f, 1f, 1f, 0.75f), FontStyle.Normal);
             var drt2 = _detailDesc.rectTransform;
             drt2.anchorMin = new Vector2(0f, 0.25f); drt2.anchorMax = new Vector2(1f, 0.65f);
@@ -439,16 +456,16 @@ namespace RunLight.UI
 
             // 按鈕列：查看（左）| 丟出（右）
             MakeDetailButton(_detailPanel.transform,
-                "InspectBtn", "查看",
-                new Vector2(0f, 0f), new Vector2(0.48f, 0.22f),
+                "InspectBtn", "",
+                new Vector2(0f, 0f), new Vector2(0.48f, 0.12f),
                 new Color(0.1f, 0.45f, 0.75f, 0.9f),
-                InspectSelected);
+                InspectSelected, inspectButtonSprite);
 
             MakeDetailButton(_detailPanel.transform,
-                "ThrowBtn", "丟出",
-                new Vector2(0.52f, 0f), new Vector2(1f, 0.22f),
+                "ThrowBtn", "",
+                new Vector2(0.52f, 0f), new Vector2(1f, 0.12f),
                 new Color(0.7f, 0.45f, 0.1f, 0.9f),
-                ThrowSelected);
+                ThrowSelected, throwButtonSprite);
 
             _detailPanel.SetActive(false);
 
@@ -457,22 +474,28 @@ namespace RunLight.UI
         }
 
         private void MakeDetailButton(Transform parent, string goName, string label,
-            Vector2 anchorMin, Vector2 anchorMax, Color bgColor, UnityEngine.Events.UnityAction action)
+            Vector2 anchorMin, Vector2 anchorMax, Color bgColor,
+            UnityEngine.Events.UnityAction action, Sprite sprite = null)
         {
             var btn = new GameObject(goName, typeof(Image), typeof(Button));
             btn.transform.SetParent(parent, false);
-            btn.GetComponent<Image>().color = bgColor;
+            var img = btn.GetComponent<Image>();
+            if (sprite != null) { img.sprite = sprite; img.color = Color.white; img.preserveAspect = true; }
+            else img.color = bgColor;
             btn.GetComponent<Button>().onClick.AddListener(action);
             var rt = btn.GetComponent<RectTransform>();
             rt.anchorMin = anchorMin; rt.anchorMax = anchorMax;
             rt.offsetMin = new Vector2(10f, 8f); rt.offsetMax = new Vector2(-10f, -8f);
 
-            var lbl = MakeTxt(label + "Lbl", btn.transform, label, 22, Color.white, FontStyle.Bold);
-            lbl.rectTransform.anchorMin = Vector2.zero;
-            lbl.rectTransform.anchorMax = Vector2.one;
-            lbl.rectTransform.offsetMin = lbl.rectTransform.offsetMax = Vector2.zero;
-            lbl.alignment = TextAnchor.MiddleCenter;
-            lbl.raycastTarget = false;
+            if (!string.IsNullOrEmpty(label))
+            {
+                var lbl = MakeTxt(label + "Lbl", btn.transform, label, 11, Color.white, FontStyle.Normal);
+                lbl.rectTransform.anchorMin = Vector2.zero;
+                lbl.rectTransform.anchorMax = Vector2.one;
+                lbl.rectTransform.offsetMin = lbl.rectTransform.offsetMax = Vector2.zero;
+                lbl.alignment = TextAnchor.MiddleCenter;
+                lbl.raycastTarget = false;
+            }
         }
 
         private void CreateInspectCamera()

@@ -31,6 +31,14 @@ namespace RunLight.Interaction
         [Header("門口擋牆（開門時關閉）")]
         [SerializeField] private Collider doorBlocker;
 
+        // 每幀只有最適合的那扇門顯示提示
+        private static CodeDoorInteractable _candidate;
+        private static float _candidateScore; // 越小越好（角度）
+        private static int   _candidateFrame = -1;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { _candidate = null; _candidateFrame = -1; }
+
         private Quaternion  _closedRot;
         private Quaternion  _openRot;
         private bool        _isOpen;
@@ -84,6 +92,28 @@ namespace RunLight.Interaction
             if (_player == null) return;
             float dist = Vector3.Distance(transform.position, _player.position);
 
+            // 每幀投票：用攝影機看向角度選最合適的門
+            if (!IsInputting && dist <= interactRange)
+            {
+                if (_candidateFrame != Time.frameCount)
+                {
+                    _candidateFrame = Time.frameCount;
+                    _candidate      = null;
+                    _candidateScore = float.MaxValue;
+                }
+                var cam = Camera.main;
+                if (cam != null)
+                {
+                    var toDir  = (transform.position - cam.transform.position).normalized;
+                    float angle = Vector3.Angle(cam.transform.forward, toDir);
+                    if (angle < _candidateScore)
+                    {
+                        _candidateScore = angle;
+                        _candidate      = this;
+                    }
+                }
+            }
+
             if (IsInputting)
             {
                 if (Input.GetKeyDown(KeyCode.Escape)) CloseUI();
@@ -101,7 +131,8 @@ namespace RunLight.Interaction
             else
             {
                 if (Input.GetKeyDown(KeyCode.E) && dist <= interactRange
-                    && !NoteReadable.IsReading && !UI.BackpackUI.IsOpen)
+                    && !NoteReadable.IsReading && !UI.BackpackUI.IsOpen
+                    && _candidate == this)
                 {
                     if (_unlocked)
                     {
@@ -203,8 +234,6 @@ namespace RunLight.Interaction
             if (_feedbackTxt != null) _feedbackTxt.text = "";
             UpdateDisplay();
             _ui?.SetActive(true);
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
             if (_fpc != null) _fpc.MovementLocked = true;
         }
 
@@ -212,8 +241,6 @@ namespace RunLight.Interaction
         {
             IsInputting = false;
             _ui?.SetActive(false);
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
             if (_fpc != null) _fpc.MovementLocked = false;
         }
 
@@ -345,7 +372,7 @@ namespace RunLight.Interaction
         private void OnGUI()
         {
             if (IsInputting || _player == null) return;
-            if (Vector3.Distance(transform.position, _player.position) > interactRange) return;
+            if (_candidate != this) return;
 
             var style = new GUIStyle(GUI.skin.label)
             {

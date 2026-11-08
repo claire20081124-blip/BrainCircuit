@@ -285,7 +285,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f808645aae807c4bad2b4d21be724b5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.Prologue
-  nextSceneName: R/3
+  nextSceneName: 3
   openingVideo: {fileID: 32900000, guid: 7ed72561851e3a94eb036adc83b98828, type: 3}
   videoFadeIn: 1
   videoFadeOut: 1

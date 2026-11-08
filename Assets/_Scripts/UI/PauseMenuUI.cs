@@ -13,6 +13,9 @@ namespace RunLight.UI
     {
         public static bool IsPaused { get; private set; }
 
+        [Header("流程")]
+        [SerializeField] private string mainMenuSceneName = "1";
+
         [Header("外觀")]
         [SerializeField] private string backgroundSpriteName = "ee";
 
@@ -26,8 +29,8 @@ namespace RunLight.UI
         private Font        _font;
         private FirstPersonController _fpc;
 
-        private static readonly string[] TabNames = { "案件說明", "音量", "靈敏度" };
-        private static readonly string[] TabIcons = { "🔑", "🔊", "🎯" };
+        private static readonly string[] TabNames = { "音量", "靈敏度" };
+        private static readonly string[] TabIcons = { "🔊", "🎯" };
 
         private static readonly (string key, string action)[] KeyBindings =
         {
@@ -71,8 +74,7 @@ namespace RunLight.UI
             _pauseCanvas.SetActive(true);
             _pausePanel.SetActive(true);
             _settingsPanel.SetActive(false);
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible   = true;
+            if (_fpc != null) _fpc.MovementLocked = true;
         }
 
         private void Resume()
@@ -82,8 +84,7 @@ namespace RunLight.UI
             _pauseCanvas.SetActive(false);
             _pausePanel.SetActive(false);
             _settingsPanel.SetActive(false);
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
+            if (_fpc != null) _fpc.MovementLocked = false;
         }
 
         private void OpenSettings()
@@ -101,19 +102,16 @@ namespace RunLight.UI
 
         private void QuitGame()
         {
-            Debug.Log("[PauseMenu] QuitGame 被呼叫");
-            {
-                var gm  = GameManager.Instance;
-                var fpc = _fpc != null ? _fpc : FindObjectOfType<FirstPersonController>();
-                if (fpc != null)
-                    gm.SaveGame(0, fpc.transform.position, fpc.transform.eulerAngles.y);
-                else
-                    gm.SaveGame(0);
-                Debug.Log("[PauseMenu] 存檔完成");
-            }
+            var gm  = GameManager.Instance;
+            var fpc = _fpc != null ? _fpc : FindObjectOfType<FirstPersonController>();
+            if (fpc != null)
+                gm.SaveGame(0, fpc.transform.position, fpc.transform.eulerAngles.y);
+            else
+                gm.SaveGame(0);
+
             IsPaused = false;
             Time.timeScale = 1f;
-            SceneManager.LoadScene(0);
+            SceneFader.Instance.FadeOutAndLoad(mainMenuSceneName);
         }
 
         // ── Tab 切換 ──────────────────────────────────────────────
@@ -183,29 +181,128 @@ namespace RunLight.UI
 
         private GameObject BuildPausePanel(Transform root)
         {
+            // 半透明遮罩
             var panel = new GameObject("PausePanel", typeof(Image));
             panel.transform.SetParent(root, false);
-            panel.GetComponent<Image>().color = Color.clear;
+            panel.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.55f);
             var rt = panel.GetComponent<RectTransform>();
             rt.anchorMin = Vector2.zero;
             rt.anchorMax = Vector2.one;
             rt.offsetMin = rt.offsetMax = Vector2.zero;
 
-            MakeLabel(panel.transform, "暫停", 56, Color.white, new Vector2(0.5f, 0.84f), new Vector2(300f, 70f));
-            MakeLabel(panel.transform, "PAUSE", 18, new Color(1f,1f,1f,0.35f), new Vector2(0.5f, 0.77f), new Vector2(200f, 26f));
+            // ── 左側卡片：按鈕 ──
+            var leftCard = MakeCard(panel.transform,
+                new Vector2(0.27f, 0.18f), new Vector2(0.50f, 0.84f));
 
-            float[] yAnchors = { 0.60f, 0.42f, 0.22f };
+            // 頂部藍色強調線
+            MakeAccent(leftCard.transform);
+
+            MakeLabel(leftCard.transform, "暫停",  46, Color.white,                new Vector2(0.5f, 0.89f), new Vector2(220f, 56f));
+            MakeLabel(leftCard.transform, "PAUSE", 13, new Color(1f,1f,1f,0.28f), new Vector2(0.5f, 0.81f), new Vector2(140f, 18f));
+
             string[] labels  = { "繼續", "設定", "離開遊戲" };
+            float[]  yPcts   = { 0.62f, 0.44f, 0.24f };
             System.Action[] actions = { Resume, OpenSettings, QuitGame };
 
             for (int i = 0; i < 3; i++)
             {
                 int idx = i;
-                MakePanelButton(panel.transform, labels[i], yAnchors[i],
-                    new Color(0.15f, 0.15f, 0.2f, 0.9f), actions[idx]);
+                MakePanelButton(leftCard.transform, labels[i], yPcts[i],
+                    new Color(0.14f, 0.17f, 0.24f, 0.98f), actions[idx], 0.80f);
+            }
+
+            // ── 右側卡片：按鍵說明 ──
+            var rightCard = MakeCard(panel.transform,
+                new Vector2(0.52f, 0.18f), new Vector2(0.75f, 0.84f));
+            MakeAccent(rightCard.transform);
+
+            MakeLabel(rightCard.transform, "按鍵說明",  26, new Color(0.7f,0.88f,1f), new Vector2(0.5f, 0.90f), new Vector2(220f, 36f));
+
+            if (controlsGuideSprite != null)
+            {
+                var imgGo = new GameObject("Guide", typeof(Image));
+                imgGo.transform.SetParent(rightCard.transform, false);
+                var img = imgGo.GetComponent<Image>();
+                img.sprite = controlsGuideSprite;
+                img.preserveAspect = true;
+                img.raycastTarget  = false;
+                var irt = imgGo.GetComponent<RectTransform>();
+                irt.anchorMin = new Vector2(0.04f, 0.06f);
+                irt.anchorMax = new Vector2(0.96f, 0.80f);
+                irt.offsetMin = irt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                float rowH = 0.68f / KeyBindings.Length;
+                for (int i = 0; i < KeyBindings.Length; i++)
+                {
+                    float y = 0.76f - rowH * i - rowH * 0.5f;
+
+                    // 按鍵底色
+                    var kbg = new GameObject("KBg" + i, typeof(Image));
+                    kbg.transform.SetParent(rightCard.transform, false);
+                    kbg.GetComponent<Image>().color = new Color(0.18f, 0.20f, 0.28f, 1f);
+                    kbg.GetComponent<Image>().raycastTarget = false;
+                    var kbrt = kbg.GetComponent<RectTransform>();
+                    kbrt.anchorMin = new Vector2(0.04f, y - rowH * 0.36f);
+                    kbrt.anchorMax = new Vector2(0.44f, y + rowH * 0.36f);
+                    kbrt.offsetMin = kbrt.offsetMax = Vector2.zero;
+
+                    // 按鍵文字
+                    var kt = new GameObject("K" + i, typeof(Text));
+                    kt.transform.SetParent(rightCard.transform, false);
+                    var ktext = kt.GetComponent<Text>();
+                    ktext.font = _font; ktext.text = KeyBindings[i].key; ktext.fontSize = 16;
+                    ktext.color = new Color(0.65f, 0.88f, 1f);
+                    ktext.alignment = TextAnchor.MiddleCenter;
+                    ktext.raycastTarget = false;
+                    ktext.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    var ktrt = kt.GetComponent<RectTransform>();
+                    ktrt.anchorMin = new Vector2(0.04f, y - rowH * 0.36f);
+                    ktrt.anchorMax = new Vector2(0.44f, y + rowH * 0.36f);
+                    ktrt.offsetMin = ktrt.offsetMax = Vector2.zero;
+
+                    // 動作文字
+                    var at = new GameObject("A" + i, typeof(Text));
+                    at.transform.SetParent(rightCard.transform, false);
+                    var atext = at.GetComponent<Text>();
+                    atext.font = _font; atext.text = KeyBindings[i].action; atext.fontSize = 16;
+                    atext.color = new Color(0.88f, 0.90f, 0.95f);
+                    atext.alignment = TextAnchor.MiddleLeft;
+                    atext.raycastTarget = false;
+                    var atrt = at.GetComponent<RectTransform>();
+                    atrt.anchorMin = new Vector2(0.48f, y - rowH * 0.36f);
+                    atrt.anchorMax = new Vector2(0.98f, y + rowH * 0.36f);
+                    atrt.offsetMin = new Vector2(6f, 0f); atrt.offsetMax = Vector2.zero;
+                }
             }
 
             return panel;
+        }
+
+        private GameObject MakeCard(Transform parent, Vector2 anchorMin, Vector2 anchorMax)
+        {
+            var go = new GameObject("Card", typeof(Image));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<Image>().color = new Color(0.06f, 0.08f, 0.13f, 0.96f);
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = anchorMin;
+            rt.anchorMax = anchorMax;
+            rt.offsetMin = rt.offsetMax = Vector2.zero;
+            return go;
+        }
+
+        private void MakeAccent(Transform parent)
+        {
+            var go = new GameObject("Accent", typeof(Image));
+            go.transform.SetParent(parent, false);
+            go.GetComponent<Image>().color = new Color(0.35f, 0.65f, 1f, 0.9f);
+            go.GetComponent<Image>().raycastTarget = false;
+            var rt = go.GetComponent<RectTransform>();
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = new Vector2(0f, 3f);
         }
 
         // ── 設定面板 ──────────────────────────────────────────────
@@ -308,9 +405,8 @@ namespace RunLight.UI
         {
             switch (tab)
             {
-                case 0: BuildKeyBindings(parent); break;
-                case 1: BuildVolumeTab(parent);   break;
-                case 2: BuildSensTab(parent);     break;
+                case 0: BuildVolumeTab(parent); break;
+                case 1: BuildSensTab(parent);   break;
             }
         }
 
