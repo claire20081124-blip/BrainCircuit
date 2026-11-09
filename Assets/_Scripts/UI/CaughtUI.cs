@@ -155,9 +155,20 @@ namespace RunLight.UI
 
         private IEnumerator TurnToFaceCatcher(float duration)
         {
-            // 瞄準清道夫身體中心（root 位置往上加一點）
-            var catcherEyePos = _catcher.transform.position + Vector3.up * catcherLookHeight;
-            var camPos   = Camera.main != null ? Camera.main.transform.position : _fpc.transform.position;
+            // 用 3D mesh 中心取視覺中心（跳過 SpriteRenderer billboard）
+            Vector3 catcherEyePos;
+            var smr = _catcher.GetComponentInChildren<SkinnedMeshRenderer>();
+            var mr  = _catcher.GetComponentInChildren<MeshRenderer>();
+            catcherEyePos = smr != null ? smr.bounds.center :
+                            mr  != null ? mr.bounds.center  :
+                            _catcher.transform.position + Vector3.up * catcherLookHeight;
+
+            // 從 FPC 子物件找攝影機，不依賴 Camera.main tag
+            var fpcCam = _fpc.GetComponentInChildren<Camera>();
+            var camPos = fpcCam   != null ? fpcCam.transform.position :
+                         Camera.main != null ? Camera.main.transform.position :
+                         _fpc.transform.position + Vector3.up * 1.6f;
+
             var toTarget = catcherEyePos - camPos;
             var flat     = new Vector3(toTarget.x, 0f, toTarget.z);
             if (flat.sqrMagnitude < 0.001f) yield break;

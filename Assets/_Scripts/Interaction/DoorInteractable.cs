@@ -30,15 +30,27 @@ namespace RunLight.Interaction
         [Tooltip("開門後幾秒自動關（0 = 不自動關）")]
         [SerializeField] private float autoCloseDelay = 3f;
 
+        [Header("智力門檻（0 = 不限制）")]
+        [SerializeField] private int minBrainPower = 0;
+
         [Header("門口擋牆（開門時關閉）")]
         [SerializeField] private Collider doorBlocker;
 
+        private static DoorInteractable _candidate;
+        private static float _candidateScore;
+        private static int   _candidateFrame = -1;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { _candidate = null; _candidateFrame = -1; }
+
         private Quaternion  _closedRot;
+        private float       _insufficientTimer;
         private Quaternion  _openRot;
         private bool        _isOpen;
         private bool        _saved;
         private Transform   _player;
         private AudioSource _audio;
+        private Camera      _cam;
 
         private void Start()
         {
@@ -55,6 +67,10 @@ namespace RunLight.Interaction
 
             if (_player == null) Debug.LogWarning("[Door] 找不到玩家！");
 
+            var fpcForCam = FindObjectOfType<RunLight.Player.FirstPersonController>();
+            _cam = fpcForCam != null ? fpcForCam.GetComponentInChildren<Camera>() : null;
+            if (_cam == null) _cam = Camera.main;
+
             _audio = gameObject.AddComponent<AudioSource>();
             _audio.spatialBlend = 0f;
             _audio.playOnAwake  = false;
@@ -67,8 +83,31 @@ namespace RunLight.Interaction
 
             float dist = Vector3.Distance(transform.position, _player.position);
 
-            if (Input.GetKeyDown(KeyCode.E) && dist <= interactRange)
+            // 每幀投票：看著的那扇門優先
+            if (dist <= interactRange)
             {
+                if (_candidateFrame != Time.frameCount)
+                {
+                    _candidateFrame = Time.frameCount;
+                    _candidate      = null;
+                    _candidateScore = float.MaxValue;
+                }
+                if (_cam != null)
+                {
+                    float angle = Vector3.Angle(_cam.transform.forward,
+                        (transform.position - _cam.transform.position).normalized);
+                    if (angle < _candidateScore) { _candidateScore = angle; _candidate = this; }
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.E) && dist <= interactRange && _candidate == this)
+            {
+                if (!_isOpen && minBrainPower > 0)
+                {
+                    int bp = Core.PlayerStats.Instance != null
+                        ? Core.PlayerStats.Instance.CurrentBrainPower : 0;
+                    if (bp < minBrainPower) { _insufficientTimer = 2f; return; }
+                }
                 if (_isOpen) Close();
                 else Open();
             }
@@ -117,6 +156,37 @@ namespace RunLight.Interaction
             _isOpen = false;
             if (doorBlocker != null) doorBlocker.enabled = true;
             if (closeSound != null) { _audio.clip = closeSound; _audio.Play(); }
+        }
+
+        private void OnGUI()
+        {
+            if (_player == null || _candidate != this) return;
+            if (RunLight.UI.CaughtUI.Instance != null && RunLight.UI.CaughtUI.Instance.IsActive) return;
+
+            if (_insufficientTimer > 0f)
+            {
+                _insufficientTimer -= Time.deltaTime;
+                var warn = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 20, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = new Color(1f, 0.3f, 0.3f) }
+                };
+                GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.63f, 400f, 32f),
+                    $"智力不足（需要 {minBrainPower}）", warn);
+            }
+
+            if (!_isOpen && minBrainPower > 0)
+            {
+                var style = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 20, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = Color.white }
+                };
+                GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.68f, 400f, 32f),
+                    $"按 E 開門（需要智力 {minBrainPower}）", style);
+            }
         }
 
         private void OnDrawGizmosSelected()

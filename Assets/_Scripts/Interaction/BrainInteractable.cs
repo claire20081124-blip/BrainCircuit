@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using RunLight.Core;
 using RunLight.UI;
 
@@ -43,9 +44,10 @@ namespace RunLight.Interaction
         [SerializeField] private float moveSpeed   = 1.5f;
         [SerializeField] private float waitAtPoint = 1.5f;
 
-        private Transform[] _movePoints;
-        private int         _moveTarget;
-        private float       _waitTimer;
+        private Transform[]  _movePoints;
+        private int          _moveTarget;
+        private float        _waitTimer;
+        private NavMeshAgent _agent;
 
         // 每幀最近的腦子才能觸發（Update 投票，LateUpdate 執行）
         private static BrainInteractable _candidate;
@@ -85,6 +87,13 @@ namespace RunLight.Interaction
         {
             var go = GameObject.FindWithTag("Player");
             if (go != null) _player = go.transform;
+
+            _agent = GetComponent<NavMeshAgent>();
+            if (_agent != null)
+            {
+                _agent.speed          = moveSpeed;
+                _agent.updateRotation = false;
+            }
         }
 
         private void Update()
@@ -110,6 +119,7 @@ namespace RunLight.Interaction
             if (dist > interactRange) return;
             if (!Input.GetKeyDown(KeyCode.E)) return;
             if (BrainQAUI.IsOpen) return;
+            if (CodeDoorInteractable.HasCandidate) return;
 
             // 投票：距離最近的腦子成為本幀候選
             if (_candidateFrame != Time.frameCount)
@@ -171,9 +181,21 @@ namespace RunLight.Interaction
         private void MoveBetweenPoints()
         {
             Vector3 target = _movePoints[_moveTarget].position;
-            transform.position = Vector3.MoveTowards(transform.position, target, moveSpeed * Time.deltaTime);
 
-            if (Vector3.Distance(transform.position, target) < 0.1f)
+            bool arrived;
+            if (_agent != null)
+            {
+                _agent.speed = moveSpeed;
+                _agent.SetDestination(target);
+                arrived = !_agent.pathPending && _agent.remainingDistance < 0.3f;
+            }
+            else
+            {
+                transform.position = Vector3.MoveTowards(transform.position, target, moveSpeed * Time.deltaTime);
+                arrived = Vector3.Distance(transform.position, target) < 0.1f;
+            }
+
+            if (arrived)
             {
                 _waitTimer += Time.deltaTime;
                 if (_waitTimer >= waitAtPoint)

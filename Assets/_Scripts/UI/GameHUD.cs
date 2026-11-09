@@ -33,10 +33,25 @@ namespace RunLight.UI
         private static readonly Color FillColor  = new(0.15f, 0.60f, 0.90f, 1f);
         private static readonly Color BarBgColor = new(0.05f, 0.05f, 0.08f, 0.65f);
 
+        private static GameHUD _instance;
+
         private void Awake()
         {
+            if (_instance != null && _instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            _instance = this;
             _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             BuildHUD();
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this) _instance = null;
+            if (PlayerStats.Instance != null)
+                PlayerStats.Instance.OnBrainPowerChanged -= UpdateBrainPower;
         }
 
         private void Start()
@@ -44,12 +59,6 @@ namespace RunLight.UI
             if (PlayerStats.Instance == null) return;
             PlayerStats.Instance.OnBrainPowerChanged += UpdateBrainPower;
             UpdateBrainPower(PlayerStats.Instance.CurrentBrainPower, PlayerStats.Instance.MaxBrainPower);
-        }
-
-        private void OnDestroy()
-        {
-            if (PlayerStats.Instance == null) return;
-            PlayerStats.Instance.OnBrainPowerChanged -= UpdateBrainPower;
         }
 
         private void Update()
@@ -64,21 +73,19 @@ namespace RunLight.UI
 
         private void UpdateBrainPower(int current, int max)
         {
-            float pct = (float)current / max;
+            float pct = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
             if (_fillClipRt != null)
                 _fillClipRt.sizeDelta = new Vector2(barWidth * pct, _fillClipRt.sizeDelta.y);
             else if (_brainFill != null)
                 _brainFill.fillAmount = pct;
             if (_brainLabel != null) _brainLabel.text = $"智力 {Mathf.RoundToInt(pct * 100)}%";
 
-            _isDanger = pct <= 0.2f;
+            _isDanger = current < 10;
             if (_dangerOverlay != null && !_isDanger)
                 _dangerOverlay.color = new Color(0f, 0f, 0f, 0f);
 
             if (_brainFill != null && barFillSprite == null)
-                _brainFill.color = pct <= 0.2f
-                    ? Color.Lerp(new Color(1f, 0.2f, 0.2f, 1f), FillColor, pct / 0.2f)
-                    : FillColor;
+                _brainFill.color = _isDanger ? new Color(1f, 0.2f, 0.2f, 1f) : FillColor;
         }
 
         private void BuildHUD()

@@ -6,15 +6,19 @@ namespace RunLight.Interaction
 {
     public class CodeDoorInteractable : MonoBehaviour
     {
-        public static bool IsInputting { get; private set; }
+        public static bool IsInputting  { get; private set; }
+        public static bool HasCandidate => _candidate != null && !_candidate._isOpen;
 
         [Header("開門動畫")]
         [SerializeField] private float openAngle = 90f;
         [SerializeField] private float openSpeed = 4f;
 
-        [Header("密碼")]
+        [Header("密碼（留空則不需要密碼）")]
         [SerializeField] private string doorId      = "codedoor_01"; // 每扇門要唯一
         [SerializeField] private string correctCode = "0613";
+
+        [Header("智力門檻（0 = 不限制）")]
+        [SerializeField] private int minBrainPower = 0;
 
         [Header("開門方向")]
         [Tooltip("勾選後左右方向互換")]
@@ -39,6 +43,7 @@ namespace RunLight.Interaction
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics() { _candidate = null; _candidateFrame = -1; }
 
+        private float       _showInsufficientTimer;
         private Quaternion  _closedRot;
         private Quaternion  _openRot;
         private bool        _isOpen;
@@ -47,6 +52,7 @@ namespace RunLight.Interaction
         private Transform   _player;
         private AudioSource _audio;
         private RunLight.Player.FirstPersonController _fpc;
+        private Camera      _cam;
 
         // UI
         private GameObject _ui;
@@ -68,6 +74,9 @@ namespace RunLight.Interaction
                 _fpc = FindObjectOfType<RunLight.Player.FirstPersonController>();
                 if (_fpc != null) _player = _fpc.transform;
             }
+
+            _cam = _fpc != null ? _fpc.GetComponentInChildren<Camera>() : null;
+            if (_cam == null) _cam = Camera.main;
 
             _audio = gameObject.AddComponent<AudioSource>();
             _audio.spatialBlend = 0f;
@@ -101,11 +110,10 @@ namespace RunLight.Interaction
                     _candidate      = null;
                     _candidateScore = float.MaxValue;
                 }
-                var cam = Camera.main;
-                if (cam != null)
+                if (_cam != null)
                 {
-                    var toDir  = (transform.position - cam.transform.position).normalized;
-                    float angle = Vector3.Angle(cam.transform.forward, toDir);
+                    var toDir  = (transform.position - _cam.transform.position).normalized;
+                    float angle = Vector3.Angle(_cam.transform.forward, toDir);
                     if (angle < _candidateScore)
                     {
                         _candidateScore = angle;
@@ -134,6 +142,18 @@ namespace RunLight.Interaction
                     && !NoteReadable.IsReading && !UI.BackpackUI.IsOpen
                     && _candidate == this)
                 {
+                    // 智力門檻檢查
+                    if (minBrainPower > 0 && !_unlocked)
+                    {
+                        int bp = Core.PlayerStats.Instance != null
+                            ? Core.PlayerStats.Instance.CurrentBrainPower : 0;
+                        if (bp < minBrainPower) { _showInsufficientTimer = 2f; return; }
+                        // 智力足夠，直接解鎖不需密碼
+                        _unlocked = true;
+                        if (Core.GameManager.HasInstance)
+                            Core.GameManager.Instance.Flags.SetBool(doorId, true);
+                    }
+
                     if (_unlocked)
                     {
                         if (_isOpen) CloseDoor();
@@ -371,8 +391,24 @@ namespace RunLight.Interaction
 
         private void OnGUI()
         {
-            if (IsInputting || _player == null) return;
-            if (_candidate != this) return;
+            if (_player == null) return;
+
+            // 智力不足提示
+            if (_showInsufficientTimer > 0f)
+            {
+                _showInsufficientTimer -= Time.deltaTime;
+                var warnStyle = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = 20, fontStyle = FontStyle.Bold,
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = new Color(1f, 0.3f, 0.3f) }
+                };
+                GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.63f, 400f, 32f),
+                    $"智力不足（需要 {minBrainPower}）", warnStyle);
+            }
+
+            if (IsInputting || _candidate != this) return;
+            if (RunLight.UI.CaughtUI.Instance != null && RunLight.UI.CaughtUI.Instance.IsActive) return;
 
             var style = new GUIStyle(GUI.skin.label)
             {
@@ -380,8 +416,10 @@ namespace RunLight.Interaction
                 alignment = TextAnchor.MiddleCenter,
                 normal = { textColor = Color.white }
             };
-            string msg = _unlocked ? "按 E 開/關門" : "按 E 輸入密碼";
-            GUI.Label(new Rect((Screen.width - 300f) * 0.5f, Screen.height * 0.68f, 300f, 32f),
+            string msg = _unlocked ? "按 E 開/關門"
+                : minBrainPower > 0 ? $"按 E 開門（需要智力 {minBrainPower}）"
+                : "按 E 輸入密碼";
+            GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.68f, 400f, 32f),
                 msg, style);
         }
 
