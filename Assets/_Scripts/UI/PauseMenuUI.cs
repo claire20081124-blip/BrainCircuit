@@ -22,10 +22,22 @@ namespace RunLight.UI
         [Header("操作說明圖（有圖時取代文字表格）")]
         [SerializeField] private Sprite controlsGuideSprite;
 
+        [Header("標題圖片（選填，不填用文字）")]
+        [SerializeField] private Sprite titlePauseSprite;
+        [SerializeField] private Sprite titleControlsSprite;
+
+        [Header("按鈕圖片（選填，不填用純色）")]
+        [SerializeField] private Sprite btnResumeSprite;
+        [SerializeField] private Sprite btnSettingsSprite;
+        [SerializeField] private Sprite btnQuitSprite;
+        [SerializeField] private Sprite btnVolumeTabSprite;
+        [SerializeField] private Sprite btnSensTabSprite;
+        [SerializeField] private Sprite btnBackSprite;
+
         private GameObject _pauseCanvas;
         private GameObject _pausePanel;
         private GameObject _settingsPanel;
-        private GameObject[] _tabContents;
+        private GameObject[] _tabContents; // unused after tab removal, kept for safety
         private Font        _font;
         private FirstPersonController _fpc;
 
@@ -197,18 +209,32 @@ namespace RunLight.UI
             // 頂部藍色強調線
             MakeAccent(leftCard.transform);
 
-            MakeLabel(leftCard.transform, "暫停",  46, Color.white,                new Vector2(0.5f, 0.89f), new Vector2(220f, 56f));
-            MakeLabel(leftCard.transform, "PAUSE", 13, new Color(1f,1f,1f,0.28f), new Vector2(0.5f, 0.81f), new Vector2(140f, 18f));
+            if (titlePauseSprite != null)
+            {
+                var tgo = new GameObject("TitleImg", typeof(Image));
+                tgo.transform.SetParent(leftCard.transform, false);
+                var timg = tgo.GetComponent<Image>();
+                timg.sprite = titlePauseSprite; timg.type = Image.Type.Simple;
+                timg.preserveAspect = true; timg.raycastTarget = false;
+                var trt = tgo.GetComponent<RectTransform>();
+                trt.anchorMin = new Vector2(0.15f, 0.78f); trt.anchorMax = new Vector2(0.85f, 0.90f);
+                trt.offsetMin = trt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                MakeLabel(leftCard.transform, "暫停", 18, Color.white, new Vector2(0.5f, 0.82f), new Vector2(220f, 28f));
+            }
 
             string[] labels  = { "繼續", "設定", "離開遊戲" };
             float[]  yPcts   = { 0.62f, 0.44f, 0.24f };
             System.Action[] actions = { Resume, OpenSettings, QuitGame };
+            Sprite[] btnSprites = { btnResumeSprite, btnSettingsSprite, btnQuitSprite };
 
             for (int i = 0; i < 3; i++)
             {
                 int idx = i;
                 MakePanelButton(leftCard.transform, labels[i], yPcts[i],
-                    new Color(0.14f, 0.17f, 0.24f, 0.98f), actions[idx], 0.80f);
+                    new Color(0.14f, 0.17f, 0.24f, 0.98f), actions[idx], 0.80f, btnSprites[idx]);
             }
 
             // ── 右側卡片：按鍵說明 ──
@@ -216,7 +242,21 @@ namespace RunLight.UI
                 new Vector2(0.52f, 0.18f), new Vector2(0.75f, 0.84f));
             MakeAccent(rightCard.transform);
 
-            MakeLabel(rightCard.transform, "按鍵說明",  26, new Color(0.7f,0.88f,1f), new Vector2(0.5f, 0.90f), new Vector2(220f, 36f));
+            if (titleControlsSprite != null)
+            {
+                var tgo = new GameObject("TitleImg", typeof(Image));
+                tgo.transform.SetParent(rightCard.transform, false);
+                var timg = tgo.GetComponent<Image>();
+                timg.sprite = titleControlsSprite; timg.type = Image.Type.Simple;
+                timg.preserveAspect = true; timg.raycastTarget = false;
+                var trt = tgo.GetComponent<RectTransform>();
+                trt.anchorMin = new Vector2(0.1f, 0.79f); trt.anchorMax = new Vector2(0.9f, 0.91f);
+                trt.offsetMin = trt.offsetMax = Vector2.zero;
+            }
+            else
+            {
+                MakeLabel(rightCard.transform, "按鍵說明", 18, new Color(0.7f,0.88f,1f), new Vector2(0.5f, 0.82f), new Vector2(220f, 28f));
+            }
 
             if (controlsGuideSprite != null)
             {
@@ -284,7 +324,7 @@ namespace RunLight.UI
         {
             var go = new GameObject("Card", typeof(Image));
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = new Color(0.06f, 0.08f, 0.13f, 0.96f);
+            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.96f);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = anchorMin;
             rt.anchorMax = anchorMax;
@@ -311,92 +351,42 @@ namespace RunLight.UI
         {
             var panel = MakePanel(root, new Vector2(960f, 640f));
 
-            // ── 左側 Tab 欄 ──
-            var sidebar = new GameObject("Sidebar", typeof(Image));
-            sidebar.transform.SetParent(panel.transform, false);
-            sidebar.GetComponent<Image>().color = new Color(0.08f, 0.08f, 0.12f, 1f);
-            var sbRt = sidebar.GetComponent<RectTransform>();
-            sbRt.anchorMin = new Vector2(0f, 0f);
-            sbRt.anchorMax = new Vector2(0.28f, 1f);
-            sbRt.offsetMin = sbRt.offsetMax = Vector2.zero;
-
-            // ── 右側 內容區 ──
+            // 內容區（全寬，留底部給返回按鈕）
             var contentArea = new GameObject("ContentArea");
             contentArea.transform.SetParent(panel.transform, false);
             var caRt = contentArea.AddComponent<RectTransform>();
-            caRt.anchorMin = new Vector2(0.30f, 0.08f);
-            caRt.anchorMax = new Vector2(0.98f, 0.90f);
+            caRt.anchorMin = new Vector2(0.04f, 0.18f);
+            caRt.anchorMax = new Vector2(0.96f, 0.92f);
             caRt.offsetMin = caRt.offsetMax = Vector2.zero;
 
-            _tabContents = new GameObject[TabNames.Length];
-            float tabSlotH = 0.18f;
-
-            for (int i = 0; i < TabNames.Length; i++)
-            {
-                int idx = i;
-                float yMax = 0.95f - tabSlotH * i;
-                float yMin = yMax - tabSlotH + 0.02f;
-
-                // 側邊 Tab 按鈕
-                var tabBtn = new GameObject("Tab_" + i, typeof(Image), typeof(Button));
-                tabBtn.transform.SetParent(sidebar.transform, false);
-                tabBtn.GetComponent<Image>().color = new Color(0.14f, 0.14f, 0.20f, 1f);
-                tabBtn.GetComponent<Button>().onClick.AddListener(() => ShowTab(idx));
-                var rt = tabBtn.GetComponent<RectTransform>();
-                rt.anchorMin = new Vector2(0.04f, yMin);
-                rt.anchorMax = new Vector2(0.96f, yMax);
-                rt.offsetMin = rt.offsetMax = Vector2.zero;
-
-                // 圖示
-                var icon = new GameObject("Icon", typeof(Text));
-                icon.transform.SetParent(tabBtn.transform, false);
-                var it = icon.GetComponent<Text>();
-                it.font = _font; it.text = TabIcons[i]; it.fontSize = 20;
-                it.color = new Color(1f,1f,1f,0.7f); it.alignment = TextAnchor.MiddleCenter;
-                it.raycastTarget = false;
-                var irt = icon.GetComponent<RectTransform>();
-                irt.anchorMin = new Vector2(0f, 0f); irt.anchorMax = new Vector2(0.3f, 1f);
-                irt.offsetMin = irt.offsetMax = Vector2.zero;
-
-                // Tab 名稱
-                var lbl = new GameObject("L", typeof(Text));
-                lbl.transform.SetParent(tabBtn.transform, false);
-                var t = lbl.GetComponent<Text>();
-                t.font = _font; t.text = TabNames[i]; t.fontSize = 20;
-                t.color = Color.white; t.alignment = TextAnchor.MiddleLeft;
-                t.raycastTarget = false;
-                var lrt = lbl.GetComponent<RectTransform>();
-                lrt.anchorMin = new Vector2(0.3f, 0f); lrt.anchorMax = Vector2.one;
-                lrt.offsetMin = new Vector2(4f,0f); lrt.offsetMax = Vector2.zero;
-
-                // 內容區
-                var content = new GameObject("Content_" + i);
-                content.transform.SetParent(contentArea.transform, false);
-                var crt = content.AddComponent<RectTransform>();
-                crt.anchorMin = Vector2.zero; crt.anchorMax = Vector2.one;
-                crt.offsetMin = crt.offsetMax = Vector2.zero;
-                _tabContents[i] = content;
-
-                BuildTabContent(content.transform, i);
-            }
+            // 直接顯示兩條 slider
+            BuildVolumeTab(contentArea.transform, 0.72f);
+            BuildSensTab(contentArea.transform, 0.38f);
 
             // 返回按鈕（左下）
             var backBtn = new GameObject("Back", typeof(Image), typeof(Button));
-            backBtn.transform.SetParent(sidebar.transform, false);
-            backBtn.GetComponent<Image>().color = new Color(0.3f, 0.12f, 0.12f, 0.9f);
+            backBtn.transform.SetParent(panel.transform, false);
+            var backImg = backBtn.GetComponent<Image>();
+            if (btnBackSprite != null)
+            { backImg.sprite = btnBackSprite; backImg.type = Image.Type.Simple; backImg.color = Color.white; backImg.preserveAspect = true; }
+            else
+            { backImg.color = new Color(0.3f, 0.12f, 0.12f, 0.9f); }
             backBtn.GetComponent<Button>().onClick.AddListener(BackToPause);
             var brt = backBtn.GetComponent<RectTransform>();
-            brt.anchorMin = new Vector2(0.04f, 0.02f); brt.anchorMax = new Vector2(0.96f, 0.10f);
+            brt.anchorMin = new Vector2(0.04f, 0.02f); brt.anchorMax = new Vector2(0.22f, 0.12f);
             brt.offsetMin = brt.offsetMax = Vector2.zero;
-            var blbl = new GameObject("L", typeof(Text));
-            blbl.transform.SetParent(backBtn.transform, false);
-            var bt = blbl.GetComponent<Text>();
-            bt.font = _font; bt.text = "← 返回"; bt.fontSize = 18;
-            bt.color = Color.white; bt.alignment = TextAnchor.MiddleCenter;
-            bt.raycastTarget = false;
-            var blrt = blbl.GetComponent<RectTransform>();
-            blrt.anchorMin = Vector2.zero; blrt.anchorMax = Vector2.one;
-            blrt.offsetMin = blrt.offsetMax = Vector2.zero;
+            if (btnBackSprite == null)
+            {
+                var blbl = new GameObject("L", typeof(Text));
+                blbl.transform.SetParent(backBtn.transform, false);
+                var bt = blbl.GetComponent<Text>();
+                bt.font = _font; bt.text = "← 返回"; bt.fontSize = 18;
+                bt.color = Color.white; bt.alignment = TextAnchor.MiddleCenter;
+                bt.raycastTarget = false;
+                var blrt = blbl.GetComponent<RectTransform>();
+                blrt.anchorMin = Vector2.zero; blrt.anchorMax = Vector2.one;
+                blrt.offsetMin = blrt.offsetMax = Vector2.zero;
+            }
 
             return panel;
         }
@@ -460,16 +450,16 @@ namespace RunLight.UI
         }
 
         // 音量
-        private void BuildVolumeTab(Transform parent)
+        private void BuildVolumeTab(Transform parent, float yAnchor = 0.65f)
         {
-            MakeSliderRow(parent, "主音量", 0.65f, 0f, 1f, AudioListener.volume, OnVolumeChanged);
+            MakeSliderRow(parent, "主音量", yAnchor, 0f, 1f, AudioListener.volume, OnVolumeChanged);
         }
 
         // 靈敏度
-        private void BuildSensTab(Transform parent)
+        private void BuildSensTab(Transform parent, float yAnchor = 0.65f)
         {
             float cur = FindObjectOfType<FirstPersonController>()?.GetSensitivity() ?? 0.15f;
-            MakeSliderRow(parent, "滑鼠靈敏度", 0.65f, 0.03f, 0.5f, cur, OnSensitivityChanged);
+            MakeSliderRow(parent, "滑鼠靈敏度", yAnchor, 0.03f, 0.5f, cur, OnSensitivityChanged);
         }
 
 
@@ -545,7 +535,7 @@ namespace RunLight.UI
         {
             var go = new GameObject("Panel", typeof(Image));
             go.transform.SetParent(root, false);
-            go.GetComponent<Image>().color = new Color(0.05f, 0.05f, 0.1f, 0.95f);
+            go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.97f);
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.sizeDelta = size;
@@ -569,11 +559,15 @@ namespace RunLight.UI
         }
 
         private void MakePanelButton(Transform parent, string label, float yAnchor,
-            Color bg, System.Action onClick, float width = 0.7f)
+            Color bg, System.Action onClick, float width = 0.7f, Sprite sprite = null)
         {
             var go = new GameObject("Btn", typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = bg;
+            var btnImg = go.GetComponent<Image>();
+            if (sprite != null)
+            { btnImg.sprite = sprite; btnImg.type = Image.Type.Simple; btnImg.color = Color.white; btnImg.preserveAspect = true; }
+            else
+            { btnImg.color = bg; }
             go.GetComponent<Button>().onClick.AddListener(() => onClick());
             var rt = go.GetComponent<RectTransform>();
             float margin = (1f - width) / 2f;
@@ -581,15 +575,18 @@ namespace RunLight.UI
             rt.anchorMax = new Vector2(1f - margin, yAnchor + 0.07f);
             rt.offsetMin = rt.offsetMax = Vector2.zero;
 
-            var lbl = new GameObject("L", typeof(Text));
-            lbl.transform.SetParent(go.transform, false);
-            var t = lbl.GetComponent<Text>();
-            t.font = _font; t.text = label; t.fontSize = 24;
-            t.color = Color.white; t.alignment = TextAnchor.MiddleCenter;
-            t.raycastTarget = false;
-            var lrt = lbl.GetComponent<RectTransform>();
-            lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
-            lrt.offsetMin = lrt.offsetMax = Vector2.zero;
+            if (sprite == null)
+            {
+                var lbl = new GameObject("L", typeof(Text));
+                lbl.transform.SetParent(go.transform, false);
+                var t = lbl.GetComponent<Text>();
+                t.font = _font; t.text = label; t.fontSize = 24;
+                t.color = Color.white; t.alignment = TextAnchor.MiddleCenter;
+                t.raycastTarget = false;
+                var lrt = lbl.GetComponent<RectTransform>();
+                lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
+                lrt.offsetMin = lrt.offsetMax = Vector2.zero;
+            }
         }
 
         private GameObject MakeImage(Transform parent, Color color,

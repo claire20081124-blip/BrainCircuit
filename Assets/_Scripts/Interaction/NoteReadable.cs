@@ -127,19 +127,11 @@ namespace RunLight.Interaction
             _ui.SetActive(false);
         }
 
-        private void OnGUI()
+        private void LateUpdate()
         {
             if (IsReading || _player == null) return;
             if (Vector3.Distance(transform.position, _player.position) > interactRange) return;
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize  = 20, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal    = { textColor = Color.white }
-            };
-            GUI.Label(new Rect((Screen.width - 300f) * 0.5f, Screen.height * 0.68f, 300f, 32f),
-                "按 E 查看紙條", style);
+            InteractionHint.Submit("按 E 查看紙條", 7);
         }
 
         private void OnDrawGizmosSelected()

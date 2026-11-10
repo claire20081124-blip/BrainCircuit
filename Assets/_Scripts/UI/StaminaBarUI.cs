@@ -16,7 +16,7 @@ namespace RunLight.UI
         private Image                 _fill;
         private RectTransform         _fillRect;
 
-        private static readonly Color ColFull  = new Color(0.25f, 0.75f, 1f);
+        private static readonly Color ColFull  = new Color(0.212f, 0.349f, 0.502f, 1f);
         private static readonly Color ColEmpty = new Color(0.9f, 0.15f, 0.1f);
 
         private void Start()

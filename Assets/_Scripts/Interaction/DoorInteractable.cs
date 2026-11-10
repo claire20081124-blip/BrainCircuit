@@ -47,6 +47,7 @@ namespace RunLight.Interaction
         private float       _insufficientTimer;
         private Quaternion  _openRot;
         private bool        _isOpen;
+        private bool        _everOpened;
         private bool        _saved;
         private Transform   _player;
         private AudioSource _audio;
@@ -96,13 +97,13 @@ namespace RunLight.Interaction
                 {
                     float angle = Vector3.Angle(_cam.transform.forward,
                         (transform.position - _cam.transform.position).normalized);
-                    if (angle < _candidateScore) { _candidateScore = angle; _candidate = this; }
+                    if (angle < 70f && angle < _candidateScore) { _candidateScore = angle; _candidate = this; }
                 }
             }
 
             if (Input.GetKeyDown(KeyCode.E) && dist <= interactRange && _candidate == this)
             {
-                if (!_isOpen && minBrainPower > 0)
+                if (!_isOpen && minBrainPower > 0 && !_everOpened)
                 {
                     int bp = Core.PlayerStats.Instance != null
                         ? Core.PlayerStats.Instance.CurrentBrainPower : 0;
@@ -111,6 +112,8 @@ namespace RunLight.Interaction
                 if (_isOpen) Close();
                 else Open();
             }
+
+            if (_insufficientTimer > 0f) _insufficientTimer -= Time.deltaTime;
 
             // 平滑旋轉
             transform.localRotation = Quaternion.Slerp(
@@ -129,6 +132,7 @@ namespace RunLight.Interaction
             _openRot = _closedRot * Quaternion.Euler(0f, angle, 0f);
 
             _isOpen = true;
+            _everOpened = true;
             if (doorBlocker != null) doorBlocker.enabled = false;
             if (autoCloseDelay > 0f)
             {
@@ -158,35 +162,13 @@ namespace RunLight.Interaction
             if (closeSound != null) { _audio.clip = closeSound; _audio.Play(); }
         }
 
-        private void OnGUI()
+        private void LateUpdate()
         {
             if (_player == null || _candidate != this) return;
-            if (RunLight.UI.CaughtUI.Instance != null && RunLight.UI.CaughtUI.Instance.IsActive) return;
-
             if (_insufficientTimer > 0f)
-            {
-                _insufficientTimer -= Time.deltaTime;
-                var warn = new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 20, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = new Color(1f, 0.3f, 0.3f) }
-                };
-                GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.63f, 400f, 32f),
-                    $"智力不足（需要 {minBrainPower}）", warn);
-            }
-
-            if (!_isOpen && minBrainPower > 0)
-            {
-                var style = new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 20, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = Color.white }
-                };
-                GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.68f, 400f, 32f),
-                    $"按 E 開門（需要智力 {minBrainPower}）", style);
-            }
+                InteractionHint.SubmitWarning($"智力不足（需要 {minBrainPower}）");
+            if (!_isOpen && minBrainPower > 0 && !_everOpened)
+                InteractionHint.Submit($"按 E 開門（需要智力 {minBrainPower}）", 9);
         }
 
         private void OnDrawGizmosSelected()

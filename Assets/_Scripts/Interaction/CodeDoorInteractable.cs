@@ -114,7 +114,7 @@ namespace RunLight.Interaction
                 {
                     var toDir  = (transform.position - _cam.transform.position).normalized;
                     float angle = Vector3.Angle(_cam.transform.forward, toDir);
-                    if (angle < _candidateScore)
+                    if (angle < 70f && angle < _candidateScore)
                     {
                         _candidateScore = angle;
                         _candidate      = this;
@@ -170,6 +170,8 @@ namespace RunLight.Interaction
                 transform.localRotation,
                 _isOpen ? _openRot : _closedRot,
                 Time.deltaTime * openSpeed);
+
+            if (_showInsufficientTimer > 0f) _showInsufficientTimer -= Time.deltaTime;
         }
 
         // ── 數字輸入 ──────────────────────────────────────────
@@ -389,38 +391,15 @@ namespace RunLight.Interaction
             rt.offsetMax = new Vector2(offR, offT);
         }
 
-        private void OnGUI()
+        private void LateUpdate()
         {
-            if (_player == null) return;
-
-            // 智力不足提示
+            if (_player == null || IsInputting || _candidate != this) return;
             if (_showInsufficientTimer > 0f)
-            {
-                _showInsufficientTimer -= Time.deltaTime;
-                var warnStyle = new GUIStyle(GUI.skin.label)
-                {
-                    fontSize = 20, fontStyle = FontStyle.Bold,
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = new Color(1f, 0.3f, 0.3f) }
-                };
-                GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.63f, 400f, 32f),
-                    $"智力不足（需要 {minBrainPower}）", warnStyle);
-            }
-
-            if (IsInputting || _candidate != this) return;
-            if (RunLight.UI.CaughtUI.Instance != null && RunLight.UI.CaughtUI.Instance.IsActive) return;
-
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = 20, fontStyle = FontStyle.Bold,
-                alignment = TextAnchor.MiddleCenter,
-                normal = { textColor = Color.white }
-            };
+                InteractionHint.SubmitWarning($"智力不足（需要 {minBrainPower}）");
             string msg = _unlocked ? "按 E 開/關門"
                 : minBrainPower > 0 ? $"按 E 開門（需要智力 {minBrainPower}）"
                 : "按 E 輸入密碼";
-            GUI.Label(new Rect((Screen.width - 400f) * 0.5f, Screen.height * 0.68f, 400f, 32f),
-                msg, style);
+            InteractionHint.Submit(msg, 10);
         }
 
         private void OnDrawGizmosSelected()

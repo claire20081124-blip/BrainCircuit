@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using RunLight.Core;
+using RunLight.Interaction;
 
 namespace RunLight.UI
 {
@@ -30,7 +31,7 @@ namespace RunLight.UI
         private bool  _isDanger;
         private float _pulseTimer;
 
-        private static readonly Color FillColor  = new(0.15f, 0.60f, 0.90f, 1f);
+        private static readonly Color FillColor  = new(0.212f, 0.349f, 0.502f, 1f);
         private static readonly Color BarBgColor = new(0.05f, 0.05f, 0.08f, 0.65f);
 
         private static GameHUD _instance;
@@ -61,6 +62,8 @@ namespace RunLight.UI
             UpdateBrainPower(PlayerStats.Instance.CurrentBrainPower, PlayerStats.Instance.MaxBrainPower);
         }
 
+        private void OnGUI() => InteractionHint.Draw();
+
         private void Update()
         {
             if (_isDanger && _dangerOverlay != null)
@@ -78,7 +81,7 @@ namespace RunLight.UI
                 _fillClipRt.sizeDelta = new Vector2(barWidth * pct, _fillClipRt.sizeDelta.y);
             else if (_brainFill != null)
                 _brainFill.fillAmount = pct;
-            if (_brainLabel != null) _brainLabel.text = $"智力 {Mathf.RoundToInt(pct * 100)}%";
+            if (_brainLabel != null) _brainLabel.text = $"{Mathf.RoundToInt(pct * 100)}%";
 
             _isDanger = current < 10;
             if (_dangerOverlay != null && !_isDanger)
@@ -160,9 +163,9 @@ namespace RunLight.UI
             if (barBGSprite != null)
             {
                 bgImg.sprite = barBGSprite;
-                bgImg.type   = Image.Type.Simple;
+                bgImg.type   = Image.Type.Sliced;
                 bgImg.color  = Color.white;
-                bgImg.preserveAspect = false;
+                bgImg.fillCenter = false;
             }
             else bgImg.color = BarBgColor;
             var bgRt = bgGo.GetComponent<RectTransform>();
@@ -174,11 +177,11 @@ namespace RunLight.UI
             lblGo.transform.SetParent(canvasGo.transform, false);
             var lbl = lblGo.GetComponent<Text>();
             lbl.font             = _font;
-            lbl.text             = "智力 50%";
+            lbl.text             = "50%";
             lbl.fontSize         = fontSize;
             lbl.color            = Color.white;
             lbl.fontStyle        = FontStyle.Bold;
-            lbl.alignment        = TextAnchor.LowerLeft;
+            lbl.alignment        = TextAnchor.MiddleLeft;
             lbl.raycastTarget    = false;
             lbl.horizontalOverflow = HorizontalWrapMode.Overflow;
             lbl.verticalOverflow   = VerticalWrapMode.Overflow;
@@ -188,9 +191,10 @@ namespace RunLight.UI
             var lblRt = lblGo.GetComponent<RectTransform>();
             lblRt.anchorMin        = new Vector2(0f, 1f);
             lblRt.anchorMax        = new Vector2(0f, 1f);
-            lblRt.pivot            = new Vector2(0f, 1f);
-            lblRt.anchoredPosition = new Vector2(marginX, -marginY);
-            lblRt.sizeDelta        = new Vector2(200f, fontSize + 6f);
+            lblRt.pivot            = new Vector2(0f, 0.5f);
+            lblRt.anchoredPosition = new Vector2(marginX + barWidth + 8f,
+                                                 -(marginY + fontSize + 6f + barHeight * 0.5f));
+            lblRt.sizeDelta        = new Vector2(120f, fontSize + 6f);
             _brainLabel = lbl;
 
             // 危險覆蓋層

@@ -39,6 +39,9 @@ namespace RunLight.Player
             }
         }
         public float Pitch          => _pitch;
+        public Vector3 CameraPosition => cameraTransform != null
+            ? cameraTransform.position
+            : transform.position + Vector3.up * 1.6f;
 
         private CharacterController _cc;
         private Vector3 _verticalVelocity;

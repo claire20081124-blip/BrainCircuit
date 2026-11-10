@@ -171,9 +171,9 @@ namespace RunLight.Interaction
             if (PlayerStats.Instance == null) { Destroy(gameObject); return; }
 
             if (correct)
-                PlayerStats.Instance.GainBrainPower(question.gainAmount > 0 ? question.gainAmount : 10);
+                PlayerStats.Instance.GainBrainPower(Mathf.Max(1, (question.gainAmount > 0 ? question.gainAmount : 10) / 2));
             else
-                PlayerStats.Instance.TakeDamage(question.loseAmount > 0 ? question.loseAmount : 8);
+                PlayerStats.Instance.TakeDamage(Mathf.Max(1, (question.loseAmount > 0 ? question.loseAmount : 8) / 2));
 
             Destroy(gameObject);
         }

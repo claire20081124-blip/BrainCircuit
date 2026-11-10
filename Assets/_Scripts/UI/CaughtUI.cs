@@ -155,19 +155,16 @@ namespace RunLight.UI
 
         private IEnumerator TurnToFaceCatcher(float duration)
         {
-            // 用 3D mesh 中心取視覺中心（跳過 SpriteRenderer billboard）
-            Vector3 catcherEyePos;
-            var smr = _catcher.GetComponentInChildren<SkinnedMeshRenderer>();
-            var mr  = _catcher.GetComponentInChildren<MeshRenderer>();
-            catcherEyePos = smr != null ? smr.bounds.center :
-                            mr  != null ? mr.bounds.center  :
-                            _catcher.transform.position + Vector3.up * catcherLookHeight;
+            // 怪物目標高度：catcherLookHeight 是離地面的高度，
+            // 但 NavMeshAgent.baseOffset 已讓 transform.position.y 升高，需扣掉
+            float baseOff = 0f;
+            var catcherAgent = _catcher.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (catcherAgent != null) baseOff = catcherAgent.baseOffset;
+            var catcherEyePos = _catcher.transform.position
+                                + Vector3.up * (catcherLookHeight - baseOff);
 
-            // 從 FPC 子物件找攝影機，不依賴 Camera.main tag
-            var fpcCam = _fpc.GetComponentInChildren<Camera>();
-            var camPos = fpcCam   != null ? fpcCam.transform.position :
-                         Camera.main != null ? Camera.main.transform.position :
-                         _fpc.transform.position + Vector3.up * 1.6f;
+            // 用 FPC 自己記錄的 cameraTransform，100% 準確
+            var camPos = _fpc.CameraPosition;
 
             var toTarget = catcherEyePos - camPos;
             var flat     = new Vector3(toTarget.x, 0f, toTarget.z);
