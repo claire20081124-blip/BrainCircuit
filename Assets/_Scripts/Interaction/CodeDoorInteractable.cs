@@ -30,6 +30,9 @@ namespace RunLight.Interaction
         [Header("音效")]
         [SerializeField] private AudioClip openSound;
         [SerializeField] private AudioClip closeSound;
+        [SerializeField] private AudioClip keyPressSound;
+        [SerializeField] private AudioClip correctSound;
+        [SerializeField] private AudioClip errorSound;
         [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
 
         [Header("門口擋牆（開門時關閉）")]
@@ -180,6 +183,7 @@ namespace RunLight.Interaction
             if (_inputBuffer.Length >= correctCode.Length) return;
             _inputBuffer += d;
             if (_feedbackTxt != null) _feedbackTxt.text = "";
+            PlaySfx(keyPressSound);
             UpdateDisplay();
         }
 
@@ -187,6 +191,7 @@ namespace RunLight.Interaction
         {
             if (_inputBuffer.Length > 0)
                 _inputBuffer = _inputBuffer[..^1];
+            PlaySfx(keyPressSound);
             UpdateDisplay();
         }
 
@@ -195,6 +200,7 @@ namespace RunLight.Interaction
             if (_inputBuffer == correctCode)
             {
                 _unlocked = true;
+                PlaySfx(correctSound);
                 if (Core.GameManager.HasInstance)
                     Core.GameManager.Instance.Flags.SetBool(doorId, true);
                 CloseUI();
@@ -202,6 +208,7 @@ namespace RunLight.Interaction
             else
             {
                 _inputBuffer = "";
+                PlaySfx(errorSound != null ? errorSound : keyPressSound);
                 if (_feedbackTxt != null)
                 {
                     _feedbackTxt.text  = "密碼錯誤";
@@ -239,6 +246,11 @@ namespace RunLight.Interaction
                 _saved = true;
                 if (GameManager.HasInstance) GameManager.Instance.SaveGame();
             }
+        }
+
+        private void PlaySfx(AudioClip clip)
+        {
+            if (clip != null && _audio != null) _audio.PlayOneShot(clip, soundVolume);
         }
 
         private void CloseDoor()

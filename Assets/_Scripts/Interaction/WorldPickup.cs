@@ -17,6 +17,10 @@ namespace RunLight.Interaction
         [TextArea(2, 6)]
         [SerializeField] private string     noteText;
 
+        [Header("音效")]
+        [SerializeField] private AudioClip pickupSound;
+        [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
+
         [Header("互動")]
         [SerializeField] private float interactRange = 3f;
 
@@ -58,6 +62,10 @@ namespace RunLight.Interaction
 
         private IEnumerator PickupRoutine()
         {
+            if (pickupSound != null)
+                AudioSource.PlayClipAtPoint(pickupSound,
+                    _player != null ? _player.position : transform.position, soundVolume);
+
             var startScale = transform.localScale;
             float t = 0f;
             while (t < 0.4f)

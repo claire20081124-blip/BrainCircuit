@@ -34,6 +34,11 @@ namespace RunLight.Interaction
         [Tooltip("拖入腦子的 3D 子物件（有 MeshRenderer 的那個）")]
         [SerializeField] private GameObject brainModel;
 
+        [Header("音效")]
+        [SerializeField] private AudioClip correctSound;
+        [SerializeField] private AudioClip wrongSound;
+        [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
+
         [Header("互動距離")]
         [SerializeField] private float interactRange = 8f;
 
@@ -62,8 +67,9 @@ namespace RunLight.Interaction
             _candidateFrame = -1;
         }
 
-        private Transform _player;
-        private bool      _used;
+        private Transform   _player;
+        private bool        _used;
+        private AudioSource _audio;
 
         public void Init(BrainQuestion q, bool bad = false, Transform[] movePoints = null)
         {
@@ -87,6 +93,11 @@ namespace RunLight.Interaction
         {
             var go = GameObject.FindWithTag("Player");
             if (go != null) _player = go.transform;
+
+            _audio = gameObject.AddComponent<AudioSource>();
+            _audio.spatialBlend = 0f;
+            _audio.playOnAwake  = false;
+            _audio.volume       = soundVolume;
 
             _agent = GetComponent<NavMeshAgent>();
             if (_agent != null)
@@ -169,6 +180,10 @@ namespace RunLight.Interaction
         private void OnAnswered(bool correct)
         {
             if (PlayerStats.Instance == null) { Destroy(gameObject); return; }
+
+            var clip = correct ? correctSound : wrongSound;
+            if (clip != null && _audio != null)
+                AudioSource.PlayClipAtPoint(clip, _player != null ? _player.position : transform.position, soundVolume);
 
             if (correct)
                 PlayerStats.Instance.GainBrainPower(Mathf.Max(1, (question.gainAmount > 0 ? question.gainAmount : 10) / 2));

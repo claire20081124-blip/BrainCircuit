@@ -39,8 +39,8 @@ namespace RunLight.UI
         [SerializeField] public Transform startPoint;
 
         [Header("被抓視角")]
-        [Tooltip("清道夫視線高度（調到剛好看到臉為止）")]
-        [SerializeField] private float catcherLookHeight = 1.2f;
+        [Tooltip("往下看幾度（正值=往下，負值=往上）")]
+        [SerializeField] private float catcherPitch = 15f;
 
         private CanvasGroup           _overlay;
         private CanvasGroup           _choiceGroup;
@@ -155,23 +155,13 @@ namespace RunLight.UI
 
         private IEnumerator TurnToFaceCatcher(float duration)
         {
-            // 怪物目標高度：catcherLookHeight 是離地面的高度，
-            // 但 NavMeshAgent.baseOffset 已讓 transform.position.y 升高，需扣掉
-            float baseOff = 0f;
-            var catcherAgent = _catcher.GetComponent<UnityEngine.AI.NavMeshAgent>();
-            if (catcherAgent != null) baseOff = catcherAgent.baseOffset;
-            var catcherEyePos = _catcher.transform.position
-                                + Vector3.up * (catcherLookHeight - baseOff);
-
-            // 用 FPC 自己記錄的 cameraTransform，100% 準確
             var camPos = _fpc.CameraPosition;
+            var toFlat = _catcher.transform.position - camPos;
+            toFlat.y = 0f;
+            if (toFlat.sqrMagnitude < 0.001f) yield break;
 
-            var toTarget = catcherEyePos - camPos;
-            var flat     = new Vector3(toTarget.x, 0f, toTarget.z);
-            if (flat.sqrMagnitude < 0.001f) yield break;
-
-            float targetYaw   = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
-            float targetPitch = -Mathf.Atan2(toTarget.y, flat.magnitude) * Mathf.Rad2Deg;
+            float targetYaw   = Mathf.Atan2(toFlat.x, toFlat.z) * Mathf.Rad2Deg;
+            float targetPitch = catcherPitch;   // Inspector 直接調，正=往下
             float startYaw    = _fpc.transform.eulerAngles.y;
             float startPitch  = _fpc.Pitch;
 

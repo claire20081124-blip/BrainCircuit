@@ -13,6 +13,7 @@ namespace RunLight.Enemy
         [SerializeField] private float detectAngle = 30f;   // 視野半角
         [SerializeField] private float detectTime  = 1.5f;  // 盯幾秒才觸發
         [SerializeField] private float decayRate   = 0.5f;  // 離開視野後每秒減少多少（0～1）
+        [SerializeField] private float startDelay  = 3f;    // 開始偵測前的等待秒數
         [SerializeField] private LayerMask obstacleMask = ~0;
 
         [Header("警報")]
@@ -31,6 +32,7 @@ namespace RunLight.Enemy
         private float      _suspicion;   // 0 ~ 1
         private bool       _triggered;
         private Quaternion _baseRot;
+        private float      _startTimer;
 
         private void Start()
         {
@@ -39,14 +41,30 @@ namespace RunLight.Enemy
             if (go != null) _player = go.transform;
             else Debug.LogWarning("[SecurityCamera] 找不到 Player 標籤的物件！");
             if (indicatorLight != null) indicatorLight.color = normalColor;
+            _startTimer = startDelay;
         }
 
         private void Update()
         {
             if (_triggered) return;
 
+            if (_startTimer > 0f) { _startTimer -= Time.deltaTime; Sweep(); return; }
+
             Sweep();
-            Debug.DrawRay(transform.position, transform.forward * detectRange, Color.red);
+            Debug.DrawRay(transform.position, -transform.forward * detectRange, Color.red);
+
+            // 無條件每秒印一次，幫助偵錯
+            _debugTimer -= Time.deltaTime;
+            if (_debugTimer <= 0f)
+            {
+                _debugTimer = 1f;
+                if (_player != null)
+                {
+                    var d = _player.position - transform.position;
+                    Debug.Log($"[Camera] dist={d.magnitude:F1}/{detectRange}  angle={Vector3.Angle(-transform.forward, d):F1}/{detectAngle}  hiding={AISweeperController.PlayerIsHidingStatic()}");
+                }
+                else Debug.LogWarning("[Camera] _player is null");
+            }
 
             bool inSight = _player != null
                 && !AISweeperController.PlayerIsHidingStatic()
@@ -83,20 +101,13 @@ namespace RunLight.Enemy
         {
             var dir = _player.position - transform.position;
             float dist  = dir.magnitude;
-            float angle = Vector3.Angle(transform.forward, dir);
-
-            _debugTimer -= Time.deltaTime;
-            if (_debugTimer <= 0f)
-            {
-                _debugTimer = 1f;
-                Debug.Log($"[Camera] dist={dist:F1}/{detectRange}  angle={angle:F1}/{detectAngle}  hiding={AISweeperController.PlayerIsHidingStatic()}");
-            }
+            float angle = Vector3.Angle(-transform.forward, dir);
 
             if (dist > detectRange) return false;
             if (angle > detectAngle) return false;
             if (AISweeperController.PlayerIsHidingStatic()) return false;
 
-            var origin   = transform.position + transform.forward * 0.3f;
+            var origin   = transform.position + (-transform.forward) * 0.3f;
             var toPlayer = _player.position - origin;
             if (Physics.Raycast(origin, toPlayer.normalized, out var hit, toPlayer.magnitude, obstacleMask))
             {
@@ -144,15 +155,16 @@ namespace RunLight.Enemy
 
         private void OnDrawGizmosSelected()
         {
-            // 紅線 = Forward 方向（鏡頭朝這裡看）
+            var fwd = -transform.forward;
+            // 紅線 = 鏡頭看向方向
             Gizmos.color = Color.red;
-            Gizmos.DrawRay(transform.position, transform.forward * detectRange);
+            Gizmos.DrawRay(transform.position, fwd * detectRange);
 
             // 青線 = 偵測視野邊緣
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, detectRange);
-            var left  = Quaternion.Euler(0, -detectAngle, 0) * transform.forward;
-            var right = Quaternion.Euler(0,  detectAngle, 0) * transform.forward;
+            var left  = Quaternion.Euler(0, -detectAngle, 0) * fwd;
+            var right = Quaternion.Euler(0,  detectAngle, 0) * fwd;
             Gizmos.DrawRay(transform.position, left  * detectRange);
             Gizmos.DrawRay(transform.position, right * detectRange);
         }
