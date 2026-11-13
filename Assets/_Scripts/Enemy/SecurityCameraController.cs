@@ -51,20 +51,6 @@ namespace RunLight.Enemy
             if (_startTimer > 0f) { _startTimer -= Time.deltaTime; Sweep(); return; }
 
             Sweep();
-            Debug.DrawRay(transform.position, -transform.forward * detectRange, Color.red);
-
-            // 無條件每秒印一次，幫助偵錯
-            _debugTimer -= Time.deltaTime;
-            if (_debugTimer <= 0f)
-            {
-                _debugTimer = 1f;
-                if (_player != null)
-                {
-                    var d = _player.position - transform.position;
-                    Debug.Log($"[Camera] dist={d.magnitude:F1}/{detectRange}  angle={Vector3.Angle(-transform.forward, d):F1}/{detectAngle}  hiding={AISweeperController.PlayerIsHidingStatic()}");
-                }
-                else Debug.LogWarning("[Camera] _player is null");
-            }
 
             bool inSight = _player != null
                 && !AISweeperController.PlayerIsHidingStatic()
@@ -96,7 +82,6 @@ namespace RunLight.Enemy
             transform.localRotation = _baseRot * Quaternion.Euler(0f, _sweepT, 0f);
         }
 
-        private float _debugTimer;
         private bool DetectsPlayer()
         {
             var dir = _player.position - transform.position;
@@ -112,10 +97,7 @@ namespace RunLight.Enemy
             if (Physics.Raycast(origin, toPlayer.normalized, out var hit, toPlayer.magnitude, obstacleMask))
             {
                 if (!hit.transform.IsChildOf(_player) && hit.transform != _player)
-                {
-                    Debug.Log($"[Camera] 射線被 {hit.transform.name} 擋住");
                     return false;
-                }
             }
             return true;
         }

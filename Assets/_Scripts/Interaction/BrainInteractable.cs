@@ -27,6 +27,9 @@ namespace RunLight.Interaction
         [Header("題目")]
         [SerializeField] private BrainQuestion question;
 
+        [Tooltip("裝飾用：不旋轉、不可互動")]
+        [SerializeField] private bool isDecoration;
+
         [Tooltip("壞腦子：無論選哪個答案都判定錯誤")]
         [SerializeField] private bool isBadBrain;
 
@@ -40,7 +43,7 @@ namespace RunLight.Interaction
         [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
 
         [Header("互動距離")]
-        [SerializeField] private float interactRange = 8f;
+        [SerializeField] private float interactRange = 3f;
 
         [Header("旋轉速度")]
         [SerializeField] private float spinSpeed = 60f;
@@ -109,6 +112,8 @@ namespace RunLight.Interaction
 
         private void Update()
         {
+            if (isDecoration) return;
+
             if (!_used && brainModel != null)
                 brainModel.transform.Rotate(Vector3.up, spinSpeed * Time.deltaTime, Space.World);
 

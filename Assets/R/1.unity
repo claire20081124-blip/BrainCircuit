@@ -413,15 +413,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 669ffa565dc162a40a2d3d6e860c68e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RunLight.UI.MainMenu
+  menuBGM: {fileID: 8300000, guid: 802542852f588d64e944f235423e696d, type: 3}
+  bgmFadeDuration: 1
   gameSceneName: 2
   newGameSlot: 0
   backgroundSprite: {fileID: 21300000, guid: 4cfeaee055ba01e4ea04bdec462a01fc, type: 3}
+  titleSettingsSprite: {fileID: 21300000, guid: a2b9004b68a142844b888b587f482e03, type: 3}
   keyBindingSprite: {fileID: 21300000, guid: cc511125490219443a6d07e12ef2f88f, type: 3}
   overlayAlpha: 0.43
   gameTitle: "\u8166\u8FF4\u8DEF"
-  titleFontSize: 150
   subtitle: BrainCircuit
-  subtitleFontSize: 50
   titlePosition: {x: 0, y: -230}
   subtitlePosition: {x: 0, y: -400}
   buttonPosition: {x: 120, y: -170}

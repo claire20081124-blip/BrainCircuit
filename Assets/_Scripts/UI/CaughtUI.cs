@@ -35,12 +35,19 @@ namespace RunLight.UI
         [SerializeField] private Sprite restartSprite;    // 重新開始按鈕 PNG
         [SerializeField] private Sprite mainMenuSprite;   // 主選單按鈕 PNG
 
+        [Header("音效")]
+        [SerializeField] private AudioClip caughtSound;
+        [SerializeField] private AudioClip gameOverSound;
+        [SerializeField] [Range(0f, 1f)] private float soundVolume = 1f;
+
         [Header("起始位置（選B時傳送）")]
         [SerializeField] public Transform startPoint;
 
         [Header("被抓視角")]
-        [Tooltip("往下看幾度（正值=往下，負值=往上）")]
-        [SerializeField] private float catcherPitch = 15f;
+        [Tooltip("清道夫臉的高度（從清道夫 transform.position 往上幾公尺）")]
+        [SerializeField] private float catcherFaceHeight = 2.5f;
+        [Tooltip("最小觀看距離（太近時用這個距離計算角度，防穿模）")]
+        [SerializeField] private float catcherMinDist = 1.5f;
 
         private CanvasGroup           _overlay;
         private CanvasGroup           _choiceGroup;
@@ -54,6 +61,11 @@ namespace RunLight.UI
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             BuildUI();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
         }
 
         public static void TriggerCaught(AISweeperController catcher = null)
@@ -73,19 +85,15 @@ namespace RunLight.UI
             _fpc = FindObjectOfType<FirstPersonController>();
             if (_fpc != null) _fpc.MovementLocked = true;
 
-            // 鏡頭轉向清道夫
-            if (_fpc != null && _catcher != null)
-            {
-                float turnDur = Mathf.Min(animationDelay, 0.8f);
-                yield return TurnToFaceCatcher(turnDur);
-                yield return new WaitForSeconds(animationDelay - turnDur);
-            }
-            else
-            {
-                yield return new WaitForSeconds(animationDelay);
-            }
+            if (caughtSound != null)
+                AudioSource.PlayClipAtPoint(caughtSound,
+                    _fpc != null ? _fpc.transform.position : Vector3.zero, soundVolume);
 
-            yield return Fade(_overlay, 0f, 1f, fadeToBlack);
+            // 瞬間黑掉
+            _overlay.alpha = 1f;
+            yield return new WaitForSeconds(animationDelay);
+
+            yield return Fade(_overlay, 1f, 1f, fadeToBlack);
 
             _choiceGroup.gameObject.SetActive(true);
             _choiceGroup.blocksRaycasts = true;
@@ -97,18 +105,15 @@ namespace RunLight.UI
             _fpc = FindObjectOfType<FirstPersonController>();
             if (_fpc != null) _fpc.MovementLocked = true;
 
-            if (_fpc != null && _catcher != null)
-            {
-                float turnDur = Mathf.Min(animationDelay, 0.8f);
-                yield return TurnToFaceCatcher(turnDur);
-                yield return new WaitForSeconds(animationDelay - turnDur);
-            }
-            else
-            {
-                yield return new WaitForSeconds(animationDelay);
-            }
+            var clip = gameOverSound != null ? gameOverSound : caughtSound;
+            if (clip != null)
+                AudioSource.PlayClipAtPoint(clip,
+                    _fpc != null ? _fpc.transform.position : Vector3.zero, soundVolume);
 
-            yield return Fade(_overlay, 0f, 1f, fadeToBlack);
+            _overlay.alpha = 1f;
+            yield return new WaitForSeconds(animationDelay);
+
+            yield return Fade(_overlay, 1f, 1f, fadeToBlack);
 
             _gameOverGroup.gameObject.SetActive(true);
             _gameOverGroup.blocksRaycasts = true;
@@ -153,15 +158,50 @@ namespace RunLight.UI
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
+        private IEnumerator LookUpAtCatcher(float duration)
+        {
+            // 轉向清道夫的水平方向，同時仰視（pitch 往負方向）
+            var toFlat = _catcher.transform.position - _fpc.transform.position;
+            toFlat.y = 0f;
+            float targetYaw   = toFlat.sqrMagnitude > 0.001f
+                ? Mathf.Atan2(toFlat.x, toFlat.z) * Mathf.Rad2Deg
+                : _fpc.transform.eulerAngles.y;
+            float targetPitch = -50f;   // 往上看 50°
+            float startYaw    = _fpc.transform.eulerAngles.y;
+            float startPitch  = _fpc.Pitch;
+            float t = 0f;
+            while (t < duration)
+            {
+                t += Time.deltaTime;
+                float ratio = Mathf.SmoothStep(0f, 1f, t / duration);
+                _fpc.ForceRotation(
+                    Mathf.LerpAngle(startYaw,   targetYaw,   ratio),
+                    Mathf.Lerp    (startPitch, targetPitch, ratio));
+                yield return null;
+            }
+            _fpc.ForceRotation(targetYaw, targetPitch);
+        }
+
         private IEnumerator TurnToFaceCatcher(float duration)
         {
-            var camPos = _fpc.CameraPosition;
-            var toFlat = _catcher.transform.position - camPos;
-            toFlat.y = 0f;
-            if (toFlat.sqrMagnitude < 0.001f) yield break;
+            // 臉的世界座標
+            var facePos = _catcher.transform.position + Vector3.up * catcherFaceHeight;
 
-            float targetYaw   = Mathf.Atan2(toFlat.x, toFlat.z) * Mathf.Rad2Deg;
-            float targetPitch = catcherPitch;   // Inspector 直接調，正=往下
+            // 用鏡頭位置計算，但強制最小水平距離防穿模
+            var camPos   = _fpc.CameraPosition;
+            var toTarget = facePos - camPos;
+            var flat     = new Vector3(toTarget.x, 0f, toTarget.z);
+            if (flat.sqrMagnitude < 0.001f) yield break;
+
+            // 若距離不足，把計算原點往後退
+            if (flat.magnitude < catcherMinDist)
+                camPos -= flat.normalized * (catcherMinDist - flat.magnitude);
+
+            toTarget = facePos - camPos;
+            flat     = new Vector3(toTarget.x, 0f, toTarget.z);
+
+            float targetYaw   = Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+            float targetPitch = -Mathf.Atan2(toTarget.y, flat.magnitude) * Mathf.Rad2Deg;
             float startYaw    = _fpc.transform.eulerAngles.y;
             float startPitch  = _fpc.Pitch;
 
@@ -180,7 +220,7 @@ namespace RunLight.UI
 
         private void GameOverToMainMenu()
         {
-            SaveSystem.Delete(GameManager.Instance.CurrentSlot);
+            if (GameManager.HasInstance) SaveSystem.Delete(GameManager.Instance.CurrentSlot);
             Time.timeScale = 1f;
             SceneFader.Instance.FadeOutAndLoad("1");
         }

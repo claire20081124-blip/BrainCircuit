@@ -46,6 +46,11 @@ namespace RunLight.Interaction
             Instance = this;
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
         private void Start()
         {
             if (giveBoxOnStart) _hasBox = true;

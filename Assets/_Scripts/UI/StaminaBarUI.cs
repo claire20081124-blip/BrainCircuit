@@ -15,6 +15,7 @@ namespace RunLight.UI
         private CanvasGroup           _group;
         private Image                 _fill;
         private RectTransform         _fillRect;
+        private GameObject            _root;
 
         private static readonly Color ColFull  = new Color(0.212f, 0.349f, 0.502f, 1f);
         private static readonly Color ColEmpty = new Color(0.9f, 0.15f, 0.1f);
@@ -25,10 +26,15 @@ namespace RunLight.UI
             BuildUI();
         }
 
+        private void OnDestroy()
+        {
+            if (_root != null) Destroy(_root);
+        }
+
         private void BuildUI()
         {
-            var root = new GameObject("StaminaCanvas");
-            DontDestroyOnLoad(root);
+            _root = new GameObject("StaminaCanvas");
+            var root = _root;
 
             var canvas = root.AddComponent<Canvas>();
             canvas.renderMode   = RenderMode.ScreenSpaceOverlay;

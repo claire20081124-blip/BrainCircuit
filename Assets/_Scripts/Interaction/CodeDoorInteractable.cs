@@ -27,6 +27,12 @@ namespace RunLight.Interaction
         [Header("互動距離")]
         [SerializeField] private float interactRange = 3f;
 
+        [Header("介面素材（選填，不填用純色）")]
+        [SerializeField] private Sprite panelSprite;   // 密碼面板底圖
+        [SerializeField] private Sprite buttonSprite;  // 數字按鈕底圖
+        [SerializeField] private Sprite closeSprite;    // 關閉按鈕底圖（叉叉）
+        [SerializeField] private Sprite inputBgSprite; // 數字顯示框底圖
+
         [Header("音效")]
         [SerializeField] private AudioClip openSound;
         [SerializeField] private AudioClip closeSound;
@@ -44,7 +50,16 @@ namespace RunLight.Interaction
         private static int   _candidateFrame = -1;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics() { _candidate = null; _candidateFrame = -1; }
+        static void ResetStatics() { _candidate = null; _candidateFrame = -1; IsInputting = false; }
+
+        private void OnDestroy()
+        {
+            if (IsInputting)
+            {
+                IsInputting = false;
+                if (_fpc != null) _fpc.MovementLocked = false;
+            }
+        }
 
         private float       _showInsufficientTimer;
         private Quaternion  _closedRot;
@@ -145,16 +160,12 @@ namespace RunLight.Interaction
                     && !NoteReadable.IsReading && !UI.BackpackUI.IsOpen
                     && _candidate == this)
                 {
-                    // 智力門檻檢查
+                    // 智力門檻檢查（只擋不夠的，夠了還是要輸密碼）
                     if (minBrainPower > 0 && !_unlocked)
                     {
                         int bp = Core.PlayerStats.Instance != null
                             ? Core.PlayerStats.Instance.CurrentBrainPower : 0;
                         if (bp < minBrainPower) { _showInsufficientTimer = 2f; return; }
-                        // 智力足夠，直接解鎖不需密碼
-                        _unlocked = true;
-                        if (Core.GameManager.HasInstance)
-                            Core.GameManager.Instance.Flags.SetBool(doorId, true);
                     }
 
                     if (_unlocked)
@@ -303,7 +314,17 @@ namespace RunLight.Interaction
             // 面板
             var panel = new GameObject("Panel", typeof(Image));
             panel.transform.SetParent(overlay.transform, false);
-            panel.GetComponent<Image>().color = new Color(0.07f, 0.09f, 0.13f, 0.97f);
+            var panelImg = panel.GetComponent<Image>();
+            if (panelSprite != null)
+            {
+                panelImg.sprite = panelSprite;
+                panelImg.color  = Color.white;
+                panelImg.type   = Image.Type.Simple;
+            }
+            else
+            {
+                panelImg.color = new Color(0.07f, 0.09f, 0.13f, 0.97f);
+            }
             var prt = panel.GetComponent<RectTransform>();
             prt.anchorMin = new Vector2(0.36f, 0.22f); prt.anchorMax = new Vector2(0.64f, 0.78f);
             prt.offsetMin = prt.offsetMax = Vector2.zero;
@@ -317,7 +338,17 @@ namespace RunLight.Interaction
             // 輸入顯示框
             var inputBg = new GameObject("InputBg", typeof(Image));
             inputBg.transform.SetParent(panel.transform, false);
-            inputBg.GetComponent<Image>().color = new Color(0.03f, 0.05f, 0.09f, 1f);
+            var inputImg = inputBg.GetComponent<Image>();
+            if (inputBgSprite != null)
+            {
+                inputImg.sprite = inputBgSprite;
+                inputImg.color  = Color.white;
+                inputImg.type   = Image.Type.Simple;
+            }
+            else
+            {
+                inputImg.color = new Color(0.03f, 0.05f, 0.09f, 1f);
+            }
             SetAnchors(inputBg.GetComponent<RectTransform>(), 0.08f, 0.73f, 0.92f, 0.87f);
 
             _inputDisplay = MakeTxt("Display", inputBg.transform, "────", 30, Color.white, FontStyle.Bold);
@@ -344,7 +375,7 @@ namespace RunLight.Interaction
                 var lbl = labels[i];
                 var btn = MakeBtn(lbl, panel.transform,
                     new Vector2(xMin, yMin), new Vector2(xMax, yMax),
-                    new Color(0.14f, 0.17f, 0.24f, 0.95f));
+                    new Color(0.14f, 0.17f, 0.24f, 0.95f), buttonSprite);
                 btn.onClick.AddListener(() =>
                 {
                     if      (lbl == "←") DeleteLast();
@@ -355,8 +386,8 @@ namespace RunLight.Interaction
 
             // 關閉按鈕（右上角）
             var closeBtn = MakeBtn("✕", panel.transform,
-                new Vector2(0.78f, 0.90f), new Vector2(0.96f, 0.99f),
-                new Color(0.35f, 0.10f, 0.10f, 0.90f));
+                new Vector2(0.84f, 0.90f), new Vector2(1.02f, 0.99f),
+                new Color(0.35f, 0.10f, 0.10f, 0.90f), closeSprite);
             closeBtn.onClick.AddListener(CloseUI);
 
             _ui = canvasGo;
@@ -376,11 +407,22 @@ namespace RunLight.Interaction
         }
 
         private Button MakeBtn(string label, Transform parent,
-            Vector2 anchorMin, Vector2 anchorMax, Color bgColor)
+            Vector2 anchorMin, Vector2 anchorMax, Color bgColor, Sprite sprite = null)
         {
             var go = new GameObject("Btn_" + label, typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
-            go.GetComponent<Image>().color = bgColor;
+            var btnImg = go.GetComponent<Image>();
+            if (sprite != null)
+            {
+                btnImg.sprite          = sprite;
+                btnImg.color           = Color.white;
+                btnImg.type            = Image.Type.Simple;
+                btnImg.preserveAspect  = true;
+            }
+            else
+            {
+                btnImg.color = bgColor;
+            }
             var rt = go.GetComponent<RectTransform>();
             rt.anchorMin = anchorMin; rt.anchorMax = anchorMax;
             rt.offsetMin = new Vector2(3f, 3f); rt.offsetMax = new Vector2(-3f, -3f);

@@ -65,7 +65,6 @@ namespace RunLight.Enemy
                 _agent.speed           = patrolSpeed;
                 _agent.updateRotation  = false;
                 _agent.baseOffset      = floatHeight;
-                Debug.Log($"[Sweeper] {name} NavMeshAgent 找到，isOnNavMesh={_agent.isOnNavMesh}");
             }
             else
             {

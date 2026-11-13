@@ -25,7 +25,6 @@ namespace RunLight.Interaction
             }
         }
 
-        private void Update() { }
 
         public bool   CanPickup => _notified;
         public string ItemName  => sourceItem?.displayName ?? "道具";

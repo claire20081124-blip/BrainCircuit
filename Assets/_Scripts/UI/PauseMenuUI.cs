@@ -48,9 +48,9 @@ namespace RunLight.UI
         {
             ("W A S D", "移動"),
             ("E",        "互動 / 確定"),
-            ("Q",        "取消 / 確定"),
-            ("Shift",    "跳躍 / 互動"),
-            ("Tab",      "打開選單"),
+            ("Q",        "快速丟出"),
+            ("Shift",    "加速"),
+            ("Tab",      "背包"),
             ("Esc",      "暫停 / 繼續"),
         };
 
@@ -69,6 +69,15 @@ namespace RunLight.UI
         {
             if (Input.GetKeyDown(KeyCode.Escape))
                 TogglePause();
+        }
+
+        private void OnDestroy()
+        {
+            if (IsPaused)
+            {
+                IsPaused = false;
+                Time.timeScale = 1f;
+            }
         }
 
         // ── 暫停控制 ──────────────────────────────────────────────
@@ -130,6 +139,7 @@ namespace RunLight.UI
 
         private void ShowTab(int index)
         {
+            if (_tabContents == null) return;
             for (int i = 0; i < _tabContents.Length; i++)
                 _tabContents[i].SetActive(i == index);
         }
@@ -255,7 +265,7 @@ namespace RunLight.UI
             }
             else
             {
-                MakeLabel(rightCard.transform, "按鍵說明", 18, new Color(0.7f,0.88f,1f), new Vector2(0.5f, 0.82f), new Vector2(220f, 28f));
+                MakeLabel(rightCard.transform, "按鍵說明", 14, new Color(0.7f,0.88f,1f), new Vector2(0.5f, 0.82f), new Vector2(220f, 28f));
             }
 
             if (controlsGuideSprite != null)
@@ -292,7 +302,7 @@ namespace RunLight.UI
                     var kt = new GameObject("K" + i, typeof(Text));
                     kt.transform.SetParent(rightCard.transform, false);
                     var ktext = kt.GetComponent<Text>();
-                    ktext.font = _font; ktext.text = KeyBindings[i].key; ktext.fontSize = 16;
+                    ktext.font = _font; ktext.text = KeyBindings[i].key; ktext.fontSize = 13;
                     ktext.color = new Color(0.65f, 0.88f, 1f);
                     ktext.alignment = TextAnchor.MiddleCenter;
                     ktext.raycastTarget = false;
@@ -306,7 +316,7 @@ namespace RunLight.UI
                     var at = new GameObject("A" + i, typeof(Text));
                     at.transform.SetParent(rightCard.transform, false);
                     var atext = at.GetComponent<Text>();
-                    atext.font = _font; atext.text = KeyBindings[i].action; atext.fontSize = 16;
+                    atext.font = _font; atext.text = KeyBindings[i].action; atext.fontSize = 13;
                     atext.color = new Color(0.88f, 0.90f, 0.95f);
                     atext.alignment = TextAnchor.MiddleLeft;
                     atext.raycastTarget = false;
@@ -471,7 +481,7 @@ namespace RunLight.UI
             var lbl = new GameObject("Lbl", typeof(Text));
             lbl.transform.SetParent(parent, false);
             var lt = lbl.GetComponent<Text>();
-            lt.font = _font; lt.text = label; lt.fontSize = 22;
+            lt.font = _font; lt.text = label; lt.fontSize = 28;
             lt.color = Color.white; lt.alignment = TextAnchor.MiddleLeft;
             lt.raycastTarget = false;
             var lrt = lbl.GetComponent<RectTransform>();

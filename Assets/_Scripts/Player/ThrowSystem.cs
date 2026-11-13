@@ -18,11 +18,19 @@ namespace RunLight.Player
         private Canvas        _crosshairCanvas;
         private Image         _crosshairDot;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { IsAiming = false; Instance = null; }
+
         private void Awake()
         {
-            if (Instance != null && Instance != this) { Destroy(this); return; }
+            if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             BuildCrosshair();
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) { IsAiming = false; Instance = null; }
         }
 
         private void Start()

@@ -19,6 +19,11 @@ namespace RunLight.UI
     [ExecuteAlways]
     public class MainMenu : MonoBehaviour
     {
+        [Header("音樂")]
+        [Tooltip("主選單背景音樂；進入主選單時自動播放")]
+        [SerializeField] private AudioClip menuBGM;
+        [SerializeField] [Range(0f, 2f)] private float bgmFadeDuration = 1f;
+
         [Header("流程")]
         [Tooltip("按「開始遊戲」要載入的場景名稱(需加入 Build Settings)")]
         [SerializeField] private string gameSceneName = "Prologue";
@@ -30,6 +35,9 @@ namespace RunLight.UI
         [Tooltip("主選單背景圖（Sprite）；留空則使用純色背景")]
         [SerializeField] private Sprite backgroundSprite;
 
+        [Tooltip("設定面板標題圖片；留空則用「設定」文字")]
+        [SerializeField] private Sprite titleSettingsSprite;
+
         [Tooltip("設定面板的鍵位說明圖；有圖時取代文字清單")]
         [SerializeField] private Sprite keyBindingSprite;
 
@@ -38,9 +46,7 @@ namespace RunLight.UI
 
         [Header("文字")]
         [SerializeField] private string gameTitle = "腦迴路";
-        [SerializeField] private int titleFontSize = 120;
         [SerializeField] private string subtitle = "BrainCircuit — 在記憶的迴路中找回自己";
-        [SerializeField] private int subtitleFontSize = 36;
 
         [Header("位置")]
         [Tooltip("標題位置（X 左右；Y 負值往下，從畫面頂部算起）")]
@@ -78,6 +84,8 @@ namespace RunLight.UI
         {
             if (!Application.isPlaying) yield break;
             RefreshContinueState();
+            if (menuBGM != null && BGMManager.HasInstance)
+                BGMManager.Instance.PlayMusic(menuBGM, bgmFadeDuration);
             yield return null; // 跳過初始場景的 sceneLoaded 事件
             SceneManager.sceneLoaded += OnSceneLoadedKillCanvas;
         }
@@ -212,7 +220,7 @@ namespace RunLight.UI
         // ---------- 設定面板 ----------
         private GameObject BuildSettingsPanel(Transform parent)
         {
-            var (panel, content) = CreatePanelShell(parent, "設定");
+            var (panel, content) = CreatePanelShell(parent, "設定", titleSettingsSprite);
 
             // 音訊
             float vol = PlayerPrefs.GetFloat(PrefMasterVolume, 1f);
@@ -438,7 +446,7 @@ namespace RunLight.UI
         }
 
         /// <summary>建立半透明遮罩 + 置中對話框的面板殼,回傳 (面板根, 內容容器)。</summary>
-        private (GameObject panel, Transform content) CreatePanelShell(Transform parent, string title)
+        private (GameObject panel, Transform content) CreatePanelShell(Transform parent, string title, Sprite titleSprite = null)
         {
             // 全螢幕遮罩(同時擋住後方點擊)
             var panel = new GameObject($"Panel_{title}", typeof(Image));
@@ -453,6 +461,7 @@ namespace RunLight.UI
             box.GetComponent<Image>().color = new Color(0.10f, 0.12f, 0.18f, 0.98f);
             var boxRt = box.GetComponent<RectTransform>();
             boxRt.anchorMin = boxRt.anchorMax = boxRt.pivot = new Vector2(0.5f, 0.5f);
+            boxRt.anchoredPosition = new Vector2(0f, -60f);
             boxRt.sizeDelta = new Vector2(700, 800);
             var vlg = box.GetComponent<VerticalLayoutGroup>();
             vlg.padding = new RectOffset(48, 48, 40, 40);
@@ -463,9 +472,24 @@ namespace RunLight.UI
             vlg.childForceExpandWidth = true;
             vlg.childForceExpandHeight = false;
 
-            var header = CreateText("Header", box.transform, title, 56, Accent, FontStyle.Bold);
-            header.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 80);
-            header.gameObject.AddComponent<LayoutElement>().minHeight = 80;
+            if (titleSprite != null)
+            {
+                var headerImg = CreateImage("Header", box.transform, Color.white);
+                headerImg.sprite = titleSprite;
+                headerImg.preserveAspect = true;
+                headerImg.raycastTarget = false;
+                headerImg.rectTransform.sizeDelta = new Vector2(0, 80);
+                var le = headerImg.gameObject.AddComponent<LayoutElement>();
+                le.minHeight       = 80;
+                le.preferredHeight = 80;
+                le.flexibleHeight  = 0;
+            }
+            else
+            {
+                var header = CreateText("Header", box.transform, title, 56, Color.white, FontStyle.Bold);
+                header.GetComponent<RectTransform>().sizeDelta = new Vector2(0, 80);
+                header.gameObject.AddComponent<LayoutElement>().minHeight = 80;
+            }
 
             return (panel, box.transform);
         }
@@ -503,7 +527,7 @@ namespace RunLight.UI
             fillArea.transform.SetParent(sliderGo.transform, false);
             var faRt = fillArea.GetComponent<RectTransform>();
             Stretch(faRt);
-            var fill = CreateImage("Fill", fillArea.transform, Accent);
+            var fill = CreateImage("Fill", fillArea.transform, new Color(0.45f, 0.75f, 0.95f));
             fill.rectTransform.sizeDelta = Vector2.zero;
 
             var handleArea = new GameObject("Handle Slide Area", typeof(RectTransform));

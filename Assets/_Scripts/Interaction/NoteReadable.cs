@@ -8,6 +8,9 @@ namespace RunLight.Interaction
     {
         public static bool IsReading { get; private set; }
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { IsReading = false; }
+
         [TextArea(3, 8)]
         [SerializeField] private string noteContent   = "密碼：0613";
         [SerializeField] private float  interactRange = 2.5f;
@@ -61,6 +64,11 @@ namespace RunLight.Interaction
             IsReading = false;
             _ui?.SetActive(false);
             if (_fpc != null) _fpc.MovementLocked = false;
+        }
+
+        private void OnDestroy()
+        {
+            if (IsReading) { IsReading = false; if (_fpc != null) _fpc.MovementLocked = false; }
         }
 
         private void BuildUI()

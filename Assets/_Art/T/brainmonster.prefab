@@ -192,7 +192,7 @@ MonoBehaviour:
   isBadBrain: 0
   brainModel: {fileID: 4934046693586971218}
   correctSound: {fileID: 8300000, guid: ceaa7b4049bec144fb301000acdc804e, type: 3}
-  wrongSound: {fileID: 0}
+  wrongSound: {fileID: 8300000, guid: 003ce67b4c050ed4ca913fb7d790ba45, type: 3}
   soundVolume: 1
   interactRange: 7
   spinSpeed: 60

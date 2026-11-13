@@ -66,6 +66,11 @@ namespace RunLight.UI
             BuildUI();
         }
 
+        private void OnDestroy()
+        {
+            if (_instance == this) { _instance = null; IsOpen = false; }
+        }
+
         private void Update()
         {
             if (_panel == null || !_panel.activeSelf) return;

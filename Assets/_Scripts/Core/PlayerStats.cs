@@ -25,6 +25,11 @@ namespace RunLight.Core
             Instance = this;
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+        }
+
         private void Start()
         {
             CurrentBrainPower = startBrainPower;

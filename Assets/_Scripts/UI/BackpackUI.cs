@@ -72,6 +72,17 @@ namespace RunLight.UI
             BuildUI();
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
+            IsOpen = false;
+            if (InventorySystem.Instance != null)
+                InventorySystem.Instance.OnChanged -= RefreshGrid;
+            if (_inspectCam != null)  Destroy(_inspectCam.gameObject);
+            if (_inspectRoot != null) Destroy(_inspectRoot.gameObject);
+            if (_inspectRT != null)   { _inspectRT.Release(); _inspectRT = null; }
+        }
+
         private void Start()
         {
             _fpc = FindObjectOfType<FirstPersonController>();
@@ -218,12 +229,12 @@ namespace RunLight.UI
                 lblGo.transform.SetParent(slotGo.transform, false);
                 var lbl = lblGo.GetComponent<Text>();
                 lbl.font = _font; lbl.text = item.displayName;
-                lbl.fontSize = 14; lbl.color = Color.white;
+                lbl.fontSize = 22; lbl.color = Color.white;
                 lbl.alignment = TextAnchor.MiddleCenter;
                 lbl.horizontalOverflow = HorizontalWrapMode.Wrap;
                 lbl.raycastTarget = false;
                 var lrt = lblGo.GetComponent<RectTransform>();
-                lrt.anchorMin = new Vector2(0f, 0f); lrt.anchorMax = new Vector2(1f, 0.32f);
+                lrt.anchorMin = new Vector2(0f, 0f); lrt.anchorMax = new Vector2(1f, 0.42f);
                 lrt.offsetMin = lrt.offsetMax = Vector2.zero;
 
                 // 點擊顯示詳情 / 長拖指定快捷格
@@ -437,15 +448,15 @@ namespace RunLight.UI
             drt.anchorMin = new Vector2(0.62f, 0.25f); drt.anchorMax = new Vector2(0.90f, 0.75f);
             drt.offsetMin = drt.offsetMax = Vector2.zero;
 
-            _detailName = MakeTxt("DetailName", _detailPanel.transform, "", 28,
+            _detailName = MakeTxt("DetailName", _detailPanel.transform, "", 36,
                 Color.white, FontStyle.Bold);
             var nrt = _detailName.rectTransform;
-            nrt.anchorMin = new Vector2(0f, 0.65f); nrt.anchorMax = Vector2.one;
-            nrt.offsetMin = new Vector2(16f, 0f); nrt.offsetMax = new Vector2(-16f, -16f);
-            _detailName.alignment = TextAnchor.UpperLeft;
+            nrt.anchorMin = new Vector2(0f, 0.72f); nrt.anchorMax = new Vector2(1f, 0.90f);
+            nrt.offsetMin = new Vector2(16f, 0f); nrt.offsetMax = new Vector2(-16f, 0f);
+            _detailName.alignment = TextAnchor.MiddleLeft;
             _detailName.horizontalOverflow = HorizontalWrapMode.Wrap;
 
-            _detailDesc = MakeTxt("DetailDesc", _detailPanel.transform, "", 26,
+            _detailDesc = MakeTxt("DetailDesc", _detailPanel.transform, "", 30,
                 new Color(1f, 1f, 1f, 0.75f), FontStyle.Normal);
             var drt2 = _detailDesc.rectTransform;
             drt2.anchorMin = new Vector2(0f, 0.25f); drt2.anchorMax = new Vector2(1f, 0.65f);
@@ -489,7 +500,7 @@ namespace RunLight.UI
 
             if (!string.IsNullOrEmpty(label))
             {
-                var lbl = MakeTxt(label + "Lbl", btn.transform, label, 11, Color.white, FontStyle.Normal);
+                var lbl = MakeTxt(label + "Lbl", btn.transform, label, 22, Color.white, FontStyle.Normal);
                 lbl.rectTransform.anchorMin = Vector2.zero;
                 lbl.rectTransform.anchorMax = Vector2.one;
                 lbl.rectTransform.offsetMin = lbl.rectTransform.offsetMax = Vector2.zero;

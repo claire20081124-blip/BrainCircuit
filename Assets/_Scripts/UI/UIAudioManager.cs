@@ -45,7 +45,10 @@ namespace RunLight.UI
         private void RegisterAllButtons()
         {
             foreach (var btn in FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                btn.onClick.RemoveListener(PlayClick);
                 btn.onClick.AddListener(PlayClick);
+            }
         }
 
         private void PlayClick()
