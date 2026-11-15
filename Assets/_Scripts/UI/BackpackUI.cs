@@ -156,6 +156,7 @@ namespace RunLight.UI
             if (BrainQAUI.IsOpen) return;
             if (PauseMenuUI.IsPaused) return;
             if (CaughtUI.Instance != null && CaughtUI.Instance.IsActive) return;
+            if (Interaction.CodeDoorInteractable.IsInputting) return;
 
             IsOpen = true;
             _bg.gameObject.SetActive(true);

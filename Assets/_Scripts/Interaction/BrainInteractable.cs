@@ -136,6 +136,7 @@ namespace RunLight.Interaction
             if (!Input.GetKeyDown(KeyCode.E)) return;
             if (BrainQAUI.IsOpen) return;
             if (CodeDoorInteractable.HasCandidate) return;
+            if (BoxHideSystem.IsHiding) return;
 
             // 投票：距離最近的腦子成為本幀候選
             if (_candidateFrame != Time.frameCount)
