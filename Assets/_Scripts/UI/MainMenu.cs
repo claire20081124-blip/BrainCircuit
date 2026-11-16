@@ -86,19 +86,32 @@ namespace RunLight.UI
             RefreshContinueState();
             if (menuBGM != null && BGMManager.HasInstance)
                 BGMManager.Instance.PlayMusic(menuBGM, bgmFadeDuration);
-            yield return null; // 跳過初始場景的 sceneLoaded 事件
-            SceneManager.sceneLoaded += OnSceneLoadedKillCanvas;
+            yield return null;
+            if (transform.Find("MainMenuCanvas") == null) Rebuild();
+            SceneManager.sceneLoaded += OnSceneLoaded;
         }
 
         private void OnDestroy()
         {
-            SceneManager.sceneLoaded -= OnSceneLoadedKillCanvas;
+            SceneManager.sceneLoaded -= OnSceneLoaded;
         }
 
-        private void OnSceneLoadedKillCanvas(Scene scene, LoadSceneMode mode)
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            var canvas = transform.Find("MainMenuCanvas");
-            if (canvas != null) Destroy(canvas.gameObject);
+            if (scene.buildIndex == 0)
+            {
+                // 回到主選單場景（MainMenu 可能因 DontDestroyOnLoad 而存活）
+                if (transform.Find("MainMenuCanvas") == null) Rebuild();
+                RefreshContinueState();
+                if (menuBGM != null && BGMManager.HasInstance)
+                    BGMManager.Instance.PlayMusic(menuBGM, bgmFadeDuration);
+            }
+            else
+            {
+                // 進入遊戲場景：刪除 canvas，避免主選單 UI 殘留
+                var canvas = transform.Find("MainMenuCanvas");
+                if (canvas != null) Destroy(canvas.gameObject);
+            }
         }
 
         private void OnValidate()
