@@ -16531,6 +16531,10 @@ MonoBehaviour:
   marginY: 20
   barBGSprite: {fileID: 21300000, guid: 722677c7a685c5347a8018d72ebb740b, type: 3}
   barFillSprite: {fileID: 21300000, guid: ea9a0a1e68fc8aa419abd9819f2e0714, type: 3}
+  warnSprites:
+  - {fileID: 21300000, guid: 3f8bf97b145e37c46a47b01ca7f452c5, type: 3}
+  - {fileID: 21300000, guid: c33a9feb4ba9b9c42b6799e831ff1eb0, type: 3}
+  - {fileID: 21300000, guid: 50783dae2ff759447bbf4094e4576437, type: 3}
   barWidth: 450
   barHeight: 40
   fontSize: 30
